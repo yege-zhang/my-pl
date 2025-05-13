@@ -1,5 +1,8 @@
 ## 一、00-vless三协议
 * 复制脚本回车根据提示安装：
+```
+bash <(curl -Ls https://raw.githubusercontent.com/eooce/sing-box/main/sing-box.sh)
+```
 * bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/00-vless.sh)
 * ①cf中cname账户用户名指向用户名.serv00.net,开小黄云
 * ②脚本中输入：cname的主域名
