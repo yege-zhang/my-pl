@@ -334,7 +334,7 @@ cat << EOF > $FILE_PATH/$USER.html
         <div class="link-box"><button class="copy-btn" onclick="copyText(this)">复制</button> hysteria2://$UUID@$vless_domain:$hy2_port?insecure=1&sni=$vless_domain#$snb-hy2-$USER</div>
     </div>
     <div class="footer">
-        <p><a href="https://chat.222609.xyz" target="_blank">网页客服</a>---<a href="https://blog.222609.xyz" target="_blank">节点安装教程</a></p>
+        
     </div>
     <script>
         function copyText(button) {
@@ -349,6 +349,7 @@ cat << EOF > $FILE_PATH/$USER.html
 </body>
 </html>
 EOF
+
 
 # 显示节点信息
 red ""
