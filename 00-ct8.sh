@@ -62,7 +62,7 @@ sleep 1
 
 read_vless_domain() {
     while true; do
-        red "此脚本Serv00服务器专用"
+        red "此脚本本服务器专用"
         reading "请输入cloudflare添加的主域名 (例如：123456.xyz): " input_domain
         # 验证域名格式
         if [[ "$input_domain" =~ ^[a-zA-Z0-9.-]+$ ]] && [[ "$input_domain" =~ \.[a-zA-Z]{2,}$ ]]; then
@@ -419,9 +419,6 @@ cat << EOF > /home/$USER/domains/$USER.serv00.net/public_html/$USER.html
         <div class="link-box"><button class="copy-btn" onclick="copyText(this)">复制</button> tuic://$UUID:$PASSWORD@s$hostname_number.serv00.com:$tuic?sni=www.bing.com&congestion_control=bbr&udp_relay_mode=native&alpn=h3&allowinsecure=1#波兰-$NAME@$USER-tuic--s$hostname_number.serv00.com</div>
         <div class="link-box"><button class="copy-btn" onclick="copyText(this)">复制</button> tuic://$UUID:$PASSWORD@cache$hostname_number.serv00.com:$tuic?sni=www.bing.com&congestion_control=bbr&udp_relay_mode=native&alpn=h3&allowinsecure=1#波兰-$NAME@$USER-tuic--cache$hostname_number.serv00.com</div>
         <div class="link-box"><button class="copy-btn" onclick="copyText(this)">复制</button> tuic://$UUID:$PASSWORD@web$hostname_number.serv00.com:$tuic?sni=www.bing.com&congestion_control=bbr&udp_relay_mode=native&alpn=h3&allowinsecure=1#波兰-$NAME@$USER-tuic--web$hostname_number.serv00.com</div>
-    </div>
-    <div class="footer">
-        <p><a href="https://chat.222609.xyz" target="_blank">网页客服</a>---<a href="https://blog.222609.xyz" target="_blank">节点安装教程</a></p>
     </div>
     <script>
         function copyText(button) {
