@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# 字体颜色定义
 re="\033[0m"
 red="\033[1;91m"
 green="\e[1;32m"
@@ -10,55 +11,119 @@ green() { echo -e "\e[1;32m$1\033[0m"; }
 yellow() { echo -e "\e[1;33m$1\033[0m"; }
 purple() { echo -e "\e[1;35m$1\033[0m"; }
 reading() { read -p "$(red "$1")" "$2"; }
-export LC_ALL=C
 
-# 检测服务器类型
-if [[ $(hostname) =~ serv00 ]]; then
-    SERVER_TYPE="serv00"
-    address="serv00.net"
+# 环境设置
+export LC_ALL=C
+HOSTNAME=$(hostname)
+USERNAME=$(whoami | tr '[:upper:]' '[:lower:]')
+
+# 识别服务器类型
+if [[ "$HOSTNAME" =~ ct8 ]]; then
+    CURRENT_DOMAIN="ct8.pl"
+elif [[ "$HOSTNAME" =~ hostuno ]]; then
+    CURRENT_DOMAIN="useruno.com"
 else
-    SERVER_TYPE="ct8"
-    address="useruno.com"
+    CURRENT_DOMAIN="serv00.net"
 fi
 
-USERNAME=$(whoami | tr '[:upper:]' '[:lower:]')
-HOSTNAME=$(hostname)
-snb=$(hostname | cut -d. -f1)
-nb=$(hostname | cut -d '.' -f 1 | tr -d 's')
-PASSWORD=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 8)
-UUID=$(uuidgen)
-WORKDIR="${HOME}/domains/${USERNAME}.${address}/logs"
-FILE_PATH="${HOME}/domains/${USERNAME}.${address}/public_html"
-keep_path="${HOME}/domains/${snb}.${USERNAME}.serv00.net/public_nodejs"
-
-# 创建必要目录
+# 工作目录设置
+WORKDIR="${HOME}/domains/${USERNAME}.${CURRENT_DOMAIN}/logs"
+FILE_PATH="${HOME}/domains/${USERNAME}.${CURRENT_DOMAIN}/public_html"
 mkdir -p "$WORKDIR" "$FILE_PATH"
-[ "$SERVER_TYPE" = "serv00" ] && mkdir -p "$keep_path"
+chmod 777 "$WORKDIR" "$FILE_PATH" >/dev/null 2>&1
 
-# 检查程序权限
-mkdir -p /home/$USER/domains/$USER.serv00.net/public_html
-cat << EOF > /home/$USER/domains/$USER.serv00.net/public_html/1.sh
+# 检查依赖
+command -v curl &>/dev/null && COMMAND="curl -so" || command -v wget &>/dev/null && COMMAND="wget -qO" || { 
+    red "Error: neither curl nor wget found, please install one of them." >&2; exit 1; 
+}
+
+# 检查权限
+cat << EOF > "$HOME/1.sh"
 #!/bin/bash
 echo "ok"
 EOF
-chmod +x /home/$USER/domains/$USER.serv00.net/public_html/1.sh
+chmod +x "$HOME/1.sh"
 
-if /home/$USER/domains/$USER.serv00.net/public_html/1.sh; then
-  echo "程序权限已开启"
-else
+if ! "$HOME/1.sh" > /dev/null; then
   devil binexec on
-  echo "首次运行，需要重新登录SSH，输入exit 退出ssh"
-  echo "重新登陆SSH后，再执行一次脚本便可"
+  echo "首次运行，需退出并重新登录SSH，再运行一次脚本"
   exit 0
 fi
 
-# 清理旧进程和文件
-cd /home/$USER/domains/$USER.serv00.net/public_html/
-pkill tmd.py
-pkill long.py
-pkill zui.py
-rm -rf /home/$USER/domains/$USER.serv00.net/public_html/*
+# 清理旧文件
+rm -rf "$WORKDIR"/*
 sleep 1
+
+# 端口管理函数
+check_port() {
+    port_list=$(devil port list)
+    tcp_ports=$(echo "$port_list" | grep -c "tcp")
+    udp_ports=$(echo "$port_list" | grep -c "udp")
+
+    if [[ $tcp_ports -ne 2 || $udp_ports -ne 1 ]]; then
+        red "端口规则不符合要求，正在调整..."
+
+        # 删除多余端口
+        if [[ $tcp_ports -gt 2 ]]; then
+            tcp_to_delete=$((tcp_ports - 2))
+            echo "$port_list" | awk '/tcp/ {print $1, $2}' | head -n $tcp_to_delete | while read port type; do
+                devil port del $type $port >/dev/null 2>&1
+                green "已删除TCP端口: $port"
+            done
+        fi
+
+        if [[ $udp_ports -gt 1 ]]; then
+            udp_to_delete=$((udp_ports - 1))
+            echo "$port_list" | awk '/udp/ {print $1, $2}' | head -n $udp_to_delete | while read port type; do
+                devil port del $type $port >/dev/null 2>&1
+                green "已删除UDP端口: $port"
+            done
+        fi
+
+        # 添加缺失端口
+        if [[ $tcp_ports -lt 2 ]]; then
+            tcp_ports_to_add=$((2 - tcp_ports))
+            tcp_ports_added=0
+            while [[ $tcp_ports_added -lt $tcp_ports_to_add ]]; do
+                tcp_port=$(shuf -i 10000-65535 -n 1) 
+                result=$(devil port add tcp $tcp_port 2>&1)
+                if [[ $result == *"Ok"* ]]; then
+                    green "已添加TCP端口: $tcp_port"
+                    if [[ $tcp_ports_added -eq 0 ]]; then
+                        tcp_port1=$tcp_port
+                    else
+                        tcp_port2=$tcp_port
+                    fi
+                    tcp_ports_added=$((tcp_ports_added + 1))
+                else
+                    yellow "端口 $tcp_port 不可用，尝试其他端口..."
+                fi
+            done
+        fi
+
+        if [[ $udp_ports -lt 1 ]]; then
+            while true; do
+                udp_port=$(shuf -i 10000-65535 -n 1) 
+                result=$(devil port add udp $udp_port 2>&1)
+                if [[ $result == *"Ok"* ]]; then
+                    green "已添加UDP端口: $udp_port"
+                    break
+                else
+                    yellow "端口 $udp_port 不可用，尝试其他端口..."
+                fi
+            done
+        fi
+    else
+        tcp_ports=$(echo "$port_list" | awk '/tcp/ {print $1}')
+        tcp_port1=$(echo "$tcp_ports" | sed -n '1p')
+        tcp_port2=$(echo "$tcp_ports" | sed -n '2p')
+        udp_port=$(echo "$port_list" | awk '/udp/ {print $1}')
+    fi
+
+    export VLESS_PORT=$tcp_port1
+    export VMESS_PORT=$tcp_port2
+    export HY2_PORT=$udp_port
+}
 
 # 读取域名
 read_vless_domain() {
@@ -82,81 +147,26 @@ read_vless_domain() {
     done
 }
 
-read_vless_domain
+# 生成配置
+generate_config() {
+    # 生成密钥对
+    output=$(./sing-box generate reality-keypair)
+    private_key=$(echo "${output}" | awk '/PrivateKey:/ {print $2}')
+    public_key=$(echo "${output}" | awk '/PublicKey:/ {print $2}')
+    echo "${private_key}" > private_key.txt
+    echo "${public_key}" > public_key.txt
 
-# 删除所有已开放端口
-devil port list | awk 'NR>1 && $1 ~ /^[0-9]+$/ { print $1, $2 }' | while read -r port type; do
-    if [[ "$type" == "tcp" ]]; then
-        echo "删除 TCP 端口: $port"
-        devil port del tcp "$port"
-    elif [[ "$type" == "udp" ]]; then
-        echo "删除 UDP 端口: $port"
-        devil port del udp "$port"
-    fi
-done
+    # 生成TLS证书
+    openssl ecparam -genkey -name prime256v1 -out "private.key"
+    openssl req -new -x509 -days 3650 -key "private.key" -out "cert.pem" -subj "/CN=$USERNAME.${CURRENT_DOMAIN}"
 
-# 添加 2 个 TCP 端口 和 1 个 UDP 端口
-devil port add tcp random
-devil port add tcp random
-devil port add udp random
+    # 获取可用IP
+    yellow "获取可用IP中，请稍等..."
+    available_ip=$(get_ip)
+    purple "当前选择IP为：$available_ip 如安装完后节点不通可尝试重新安装"
 
-# 等待端口生效
-sleep 2
-
-# 获取最新端口号
-ports=($(devil port list | awk 'NR>1 && $1 ~ /^[0-9]+$/ { print $1 }'))
-types=($(devil port list | awk 'NR>1 && $2 ~ /tcp|udp/ { print $2 }'))
-
-# 变量赋值
-tcp_ports=()
-udp_ports=()
-for i in "${!types[@]}"; do
-    if [[ "${types[i]}" == "tcp" ]]; then
-        tcp_ports+=("${ports[i]}")
-    elif [[ "${types[i]}" == "udp" ]]; then
-        udp_ports+=("${ports[i]}")
-    fi
-done
-
-# 确保至少有 2 个 TCP 和 1 个 UDP 端口
-if [[ ${#tcp_ports[@]} -ge 2 && ${#udp_ports[@]} -ge 1 ]]; then
-    vless_port=${tcp_ports[0]}
-    vmess_port=${tcp_ports[1]}
-    hy2_port=${udp_ports[0]}
-else
-    echo "端口分配失败，请检查 devil port list 输出"
-    exit 1
-fi
-
-# 设置域名
-echo "域名清理中---"
-devil www del $vless_domain
-sleep 2
-echo "域名添加中---"
-devil www add $vless_domain proxy localhost $vless_port
-devil www add $USER.$address
-
-# 下载和配置sing-box
-cd $FILE_PATH
-wget -O sing-box.tar.gz "https://github.com/SagerNet/sing-box/releases/download/v1.3.0/sing-box-1.3.0-linux-amd64.tar.gz"
-tar -xzf sing-box.tar.gz
-mv sing-box-*/sing-box .
-chmod +x sing-box
-rm -rf sing-box-* sing-box.tar.gz
-
-# 生成密钥对
-output=$(./sing-box generate reality-keypair)
-private_key=$(echo "${output}" | awk '/PrivateKey:/ {print $2}')
-public_key=$(echo "${output}" | awk '/PublicKey:/ {print $2}')
-echo "${private_key}" > private_key.txt
-echo "${public_key}" > public_key.txt
-
-# 生成TLS证书
-openssl ecparam -genkey -name prime256v1 -out "private.key"
-openssl req -new -x509 -days 3650 -key "private.key" -out "cert.pem" -subj "/CN=$USERNAME.${address}"
-
-# 创建配置文件
-cat > config.json << EOF
+    # 创建配置文件
+    cat > config.json <<EOF
 {
   "log": {
     "disabled": true,
@@ -165,63 +175,21 @@ cat > config.json << EOF
   },
   "inbounds": [
     {
-      "tag": "vless-reality",
-      "type": "vless",
-      "listen": "::",
-      "listen_port": $vless_port,
-      "users": [
-        {
-          "uuid": "$UUID",
-          "flow": "xtls-rprx-vision"
-        }
-      ],
-      "tls": {
-        "enabled": true,
-        "server_name": "$vless_domain",
-        "reality": {
-          "enabled": true,
-          "handshake": {
-            "server": "$vless_domain",
-            "server_port": 443
-          },
-          "private_key": "$private_key",
-          "short_id": [""]
-        }
-      }
-    },
+  "tag": "vless-ws",
+  "type": "vless",
+  "listen": "::",
+  "listen_port": $VLESS_PORT,
+  "users": [
     {
-      "tag": "vmess-ws",
-      "type": "vmess",
-      "listen": "::",
-      "listen_port": $vmess_port,
-      "users": [
-        {
-          "uuid": "$UUID"
-        }
-      ],
-      "transport": {
-        "type": "ws",
-        "path": "/$UUID-vm",
-        "early_data_header_name": "Sec-WebSocket-Protocol"
-      }
-    },
-    {
-      "tag": "hysteria2",
-      "type": "hysteria2",
-      "listen": "::",
-      "listen_port": $hy2_port,
-      "users": [
-        {
-          "password": "$UUID"
-        }
-      ],
-      "tls": {
-        "enabled": true,
-        "alpn": ["h3"],
-        "certificate_path": "cert.pem",
-        "key_path": "private.key"
-      }
+      "uuid": "$UUID"
     }
+  ],
+  "transport": {
+    "type": "ws",
+    "path": "/$USER",
+    "early_data_header_name": "Sec-WebSocket-Protocol"
+  }
+}
   ],
   "outbounds": [
     {
@@ -235,30 +203,83 @@ cat > config.json << EOF
   ]
 }
 EOF
+}
+
+# 获取IP
+get_ip() {
+  IP_LIST=($(devil vhost list | awk '/^[0-9]+/ {print $1}'))
+  API_URL="https://status.eooce.com/api"
+  IP=""
+  THIRD_IP=${IP_LIST[2]}
+  RESPONSE=$(curl -s --max-time 2 "${API_URL}/${THIRD_IP}")
+  if [[ $(echo "$RESPONSE" | jq -r '.status') == "Available" ]]; then
+      IP=$THIRD_IP
+  else
+      FIRST_IP=${IP_LIST[0]}
+      RESPONSE=$(curl -s --max-time 2 "${API_URL}/${FIRST_IP}")
+      if [[ $(echo "$RESPONSE" | jq -r '.status') == "Available" ]]; then
+          IP=$FIRST_IP
+      else
+          IP=${IP_LIST[1]}
+      fi
+  fi
+  echo "$IP"
+}
+
+# 下载sing-box
+download_singbox() {
+  ARCH=$(uname -m)
+  if [ "$ARCH" == "arm" ] || [ "$ARCH" == "arm64" ] || [ "$ARCH" == "aarch64" ]; then
+      BASE_URL="https://github.com/SagerNet/sing-box/releases/download/v1.3.0/sing-box-1.3.0-linux-arm64"
+  elif [ "$ARCH" == "amd64" ] || [ "$ARCH" == "x86_64" ] || [ "$ARCH" == "x86" ]; then
+      BASE_URL="https://github.com/SagerNet/sing-box/releases/download/v1.3.0/sing-box-1.3.0-linux-amd64"
+  else
+      echo "Unsupported architecture: $ARCH"
+      exit 1
+  fi
+
+  $COMMAND sing-box "$BASE_URL"
+  chmod +x sing-box
+}
 
 # 启动服务
-nohup ./sing-box run -c config.json >/dev/null 2>&1 &
+start_services() {
+  nohup ./sing-box run -c config.json >/dev/null 2>&1 &
+  sleep 2
+  if pgrep -x "sing-box" > /dev/null; then
+      green "sing-box 主进程已启动"
+  else
+      red "sing-box 主进程启动失败, 重启中..."
+      pkill -x "sing-box"
+      nohup ./sing-box run -c config.json >/dev/null 2>&1 &
+      sleep 2
+      purple "sing-box 主进程已重启"
+  fi
+}
 
 # 创建保活脚本
-cat > start123.sh <<EOF
+create_keepalive() {
+  cat > start123.sh <<EOF
 #!/bin/bash
 if ! pgrep -x "sing-box" > /dev/null; then
-    cd $FILE_PATH
+    cd $WORKDIR
     nohup ./sing-box run -c config.json >/dev/null 2>&1 &
     echo "$(date '+%Y-%m-%d %H:%M:%S') restarted" >> log.txt
 fi
 EOF
-chmod +x start123.sh
+  chmod +x start123.sh
 
-# 添加定时任务
-cron_job="9 */2 * * * $FILE_PATH/start123.sh"
-if ! crontab -l | grep -q "start123.sh"; then
-    (crontab -l ; echo "$cron_job") | crontab -
-    echo "保活任务已添加到 crontab。"
-fi
+  # 添加定时任务
+  cron_job="9 */2 * * * $WORKDIR/start123.sh"
+  if ! crontab -l | grep -q "start123.sh"; then
+      (crontab -l ; echo "$cron_job") | crontab -
+      echo "保活任务已添加到 crontab。"
+  fi
+}
 
 # 生成节点信息
-cat << EOF > $FILE_PATH/$USER.html
+generate_node_info() {
+  cat << EOF > $FILE_PATH/$USER.html
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -325,17 +346,15 @@ cat << EOF > $FILE_PATH/$USER.html
         <p style="color: red; font-size: 24px;">复制下面的节点地址到客户端使用</p>
         
         <p>Vless-reality节点:</p>
-        <div class="link-box"><button class="copy-btn" onclick="copyText(this)">复制</button> vless://$UUID@$vless_domain:$vless_port?encryption=none&flow=xtls-rprx-vision&security=reality&sni=$vless_domain&fp=chrome&pbk=$public_key&type=tcp&headerType=none#$snb-reality-$USER</div>
+        <div class="link-box"><button class="copy-btn" onclick="copyText(this)">复制</button> vless://$UUID@$vless_domain:$VLESS_PORT?encryption=none&flow=xtls-rprx-vision&security=reality&sni=$vless_domain&fp=chrome&pbk=$public_key&type=tcp&headerType=none#$HOSTNAME-reality-$USER</div>
         
         <p>Vmess-ws节点:</p>
-        <div class="link-box"><button class="copy-btn" onclick="copyText(this)">复制</button> vmess://$(echo "{ \"v\": \"2\", \"ps\": \"$snb-vmess-ws-$USER\", \"add\": \"$vless_domain\", \"port\": \"$vmess_port\", \"id\": \"$UUID\", \"aid\": \"0\", \"scy\": \"auto\", \"net\": \"ws\", \"type\": \"none\", \"host\": \"\", \"path\": \"/$UUID-vm\", \"tls\": \"\", \"sni\": \"\", \"alpn\": \"\", \"fp\": \"\"}" | base64 -w0)</div>
+        <div class="link-box"><button class="copy-btn" onclick="copyText(this)">复制</button> vmess://$(echo "{ \"v\": \"2\", \"ps\": \"$HOSTNAME-vmess-ws-$USER\", \"add\": \"$vless_domain\", \"port\": \"$VMESS_PORT\", \"id\": \"$UUID\", \"aid\": \"0\", \"scy\": \"auto\", \"net\": \"ws\", \"type\": \"none\", \"host\": \"\", \"path\": \"/$UUID-vm\", \"tls\": \"\", \"sni\": \"\", \"alpn\": \"\", \"fp\": \"\"}" | base64 -w0)</div>
         
         <p>Hysteria2节点:</p>
-        <div class="link-box"><button class="copy-btn" onclick="copyText(this)">复制</button> hysteria2://$UUID@$vless_domain:$hy2_port?insecure=1&sni=$vless_domain#$snb-hy2-$USER</div>
+        <div class="link-box"><button class="copy-btn" onclick="copyText(this)">复制</button> hysteria2://$UUID@$vless_domain:$HY2_PORT?insecure=1&sni=$vless_domain#$HOSTNAME-hy2-$USER</div>
     </div>
-    <div class="footer">
-        
-    </div>
+    
     <script>
         function copyText(button) {
             var text = button.parentElement.textContent.replace("复制", "").trim();
@@ -350,11 +369,106 @@ cat << EOF > $FILE_PATH/$USER.html
 </html>
 EOF
 
+  # 显示节点信息
+  red ""
+  red "当前节点信息"
+  red ""
+  red "复制下面的网页地址，在浏览器打开，查看节点信息"
+  red ""
+  red "https://$USER.$CURRENT_DOMAIN/$USER.html"
+}
 
-# 显示节点信息
-red ""
-red "当前节点信息"
-red ""
-red "复制下面的网页地址，在浏览器打开，查看节点信息"
-red ""
-red "https://$USER.$address/$USER.html"
+# 主安装函数
+install() {
+  cd "$WORKDIR"
+  
+  # 读取域名
+  read_vless_domain
+  
+  # 检查并设置端口
+  check_port
+  
+  # 下载sing-box
+  download_singbox
+  
+  # 生成配置
+  generate_config
+  
+  # 启动服务
+  start_services
+  
+  # 创建保活脚本
+  create_keepalive
+  
+  # 生成节点信息
+  generate_node_info
+  
+  # 创建快捷命令
+  quick_command
+}
+
+# 创建快捷命令
+quick_command() {
+  COMMAND="00"
+  SCRIPT_PATH="$HOME/bin/$COMMAND"
+  mkdir -p "$HOME/bin"
+  printf '#!/bin/bash\n' > "$SCRIPT_PATH"
+  echo "bash <(curl -Ls https://raw.githubusercontent.com/your-repo/vless-serv00/main/vless.sh)" >> "$SCRIPT_PATH"
+  chmod +x "$SCRIPT_PATH"
+  
+  if [[ ":$PATH:" != *":$HOME/bin:"* ]]; then
+      echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.bashrc"
+      source "$HOME/.bashrc"
+  fi
+  
+  green "快捷指令00创建成功，下次运行输入00快速进入脚本"
+}
+
+# 卸载函数
+uninstall() {
+  reading "确定要卸载吗？【y/n】: " choice
+  case "$choice" in
+      [Yy])
+          bash -c 'ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" | awk "{print \$2}" | xargs -r kill -9 >/dev/null 2>&1' >/dev/null 2>&1
+          rm -rf "$WORKDIR" "$FILE_PATH/$USER.html"
+          crontab -l | grep -v "start123.sh" | crontab -
+          green "已卸载所有服务"
+          ;;
+      [Nn]) exit 0 ;;
+      *) red "无效的选择，请输入y或n" ;;
+  esac
+}
+
+# 主菜单
+menu() {
+  clear
+  echo ""
+  purple "=== Serv00/CT8三协议一键安装脚本 ==="
+  echo ""
+  green "1. 安装 vless-reality + vmess-ws + hysteria2"
+  echo "================================="
+  red "2. 卸载所有服务"
+  echo "================================="
+  green "3. 查看节点信息"
+  echo "================================="
+  red "0. 退出脚本"
+  echo "================================="
+  reading "请输入选择(0-3): " choice
+  echo ""
+  case "${choice}" in
+      1) install ;;
+      2) uninstall ;;
+      3) 
+         if [ -f "$FILE_PATH/$USER.html" ]; then
+             red "节点信息: https://$USER.$CURRENT_DOMAIN/$USER.html"
+         else
+             red "尚未安装服务，请先选择1安装"
+         fi
+         ;;
+      0) exit 0 ;;
+      *) red "无效的选项，请输入 0 到 3" ;;
+  esac
+}
+
+# 启动菜单
+menu
