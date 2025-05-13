@@ -1,4 +1,5 @@
 #!/bin/bash
+
 re="\033[0m"
 red="\033[1;91m"
 green="\e[1;32m"
@@ -9,25 +10,21 @@ green() { echo -e "\e[1;32m$1\033[0m"; }
 yellow() { echo -e "\e[1;33m$1\033[0m"; }
 purple() { echo -e "\e[1;35m$1\033[0m"; }
 reading() { read -p "$(red "$1")" "$2"; }
-USERNAME=$(whoami | tr '[:upper:]' '[:lower:]')
-snb=$(hostname | cut -d. -f1)
-nb=$(hostname | cut -d '.' -f 1 | tr -d 's')
+export LC_ALL=C
 HOSTNAME=$(hostname)
-hona=$(hostname | cut -d. -f2)
-if [ "$hona" = "serv00" ]; then
-address="serv00.net"
-keep_path="${HOME}/domains/${snb}.${USERNAME}.serv00.net/public_nodejs"
-[ -d "$keep_path" ] || mkdir -p "$keep_path"
+
+
+if [[ "$HOSTNAME" =~ ct8 ]]; then
+    CURRENT_DOMAIN="ct8.pl"
+elif [[ "$HOSTNAME" =~ useruno ]]; then
+    CURRENT_DOMAIN="useruno.com"
 else
-address="useruno.com"
+    CURRENT_DOMAIN="serv00.net"
 fi
-WORKDIR="${HOME}/domains/${USERNAME}.${address}/logs"
-devil www add ${USERNAME}.${address} php > /dev/null 2>&1
-FILE_PATH="${HOME}/domains/${USERNAME}.${address}/public_html"
-[ -d "$FILE_PATH" ] || mkdir -p "$FILE_PATH"
-[ -d "$WORKDIR" ] || (mkdir -p "$WORKDIR" && chmod 777 "$WORKDIR")
-devil binexec on >/dev/null 2>&1
-curl -sk "http://${snb}.${USERNAME}.${hona}.net/up" > /dev/null 2>&1
+WORKDIR="${HOME}/domains/${USERNAME}.${CURRENT_DOMAIN}/logs"
+FILE_PATH="${HOME}/domains/${USERNAME}.${CURRENT_DOMAIN}/public_html"
+rm -rf "$WORKDIR" && mkdir -p "$WORKDIR" "$FILE_PATH" && chmod 777 "$WORKDIR" "$FILE_PATH" >/dev/null 2>&1
+command -v curl &>/dev/null && COMMAND="curl -so" || command -v wget &>/dev/null && COMMAND="wget -qO" || { red "Error: neither curl nor wget found, please install one of them." >&2; exit 1; }
 
 
 # 检查是否为 root
