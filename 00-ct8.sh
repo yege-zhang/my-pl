@@ -1,17 +1,33 @@
 #!/bin/bash
-# Modified 00-vless installer script
-# Features: vless, vmess, hysteria2 | No socks5, no tuic
-# Compatible with serv00 / ct8 platforms
-
-# 智能系统识别
-if [ -f /etc/ct8-release ]; then
-    SYSTEM_TYPE="ct8"
-elif [ -f /usr/share/serv00-release ]; then
-    SYSTEM_TYPE="serv00"
+re="\033[0m"
+red="\033[1;91m"
+green="\e[1;32m"
+yellow="\e[1;33m"
+purple="\e[1;35m"
+red() { echo -e "\e[1;91m$1\033[0m"; }
+green() { echo -e "\e[1;32m$1\033[0m"; }
+yellow() { echo -e "\e[1;33m$1\033[0m"; }
+purple() { echo -e "\e[1;35m$1\033[0m"; }
+reading() { read -p "$(red "$1")" "$2"; }
+USERNAME=$(whoami | tr '[:upper:]' '[:lower:]')
+snb=$(hostname | cut -d. -f1)
+nb=$(hostname | cut -d '.' -f 1 | tr -d 's')
+HOSTNAME=$(hostname)
+hona=$(hostname | cut -d. -f2)
+if [ "$hona" = "serv00" ]; then
+address="serv00.net"
+keep_path="${HOME}/domains/${snb}.${USERNAME}.serv00.net/public_nodejs"
+[ -d "$keep_path" ] || mkdir -p "$keep_path"
 else
-    echo "不支持的系统"
-    exit 1
+address="useruno.com"
 fi
+WORKDIR="${HOME}/domains/${USERNAME}.${address}/logs"
+devil www add ${USERNAME}.${address} php > /dev/null 2>&1
+FILE_PATH="${HOME}/domains/${USERNAME}.${address}/public_html"
+[ -d "$FILE_PATH" ] || mkdir -p "$FILE_PATH"
+[ -d "$WORKDIR" ] || (mkdir -p "$WORKDIR" && chmod 777 "$WORKDIR")
+devil binexec on >/dev/null 2>&1
+curl -sk "http://${snb}.${USERNAME}.${hona}.net/up" > /dev/null 2>&1
 
 
 # 检查是否为 root
