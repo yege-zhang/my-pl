@@ -26,10 +26,6 @@ FILE_PATH="${HOME}/domains/${USERNAME}.${CURRENT_DOMAIN}/public_html"
 rm -rf "$WORKDIR" && mkdir -p "$WORKDIR" "$FILE_PATH" && chmod 777 "$WORKDIR" "$FILE_PATH" >/dev/null 2>&1
 command -v curl &>/dev/null && COMMAND="curl -so" || command -v wget &>/dev/null && COMMAND="wget -qO" || { red "Error: neither curl nor wget found, please install one of them." >&2; exit 1; }
 
-
-# 检查是否为 root
-[[ $EUID -ne 0 ]] && echo "请使用 root 用户运行本脚本" && exit 1
-
 # 预安装依赖
 install_base() {
   apt update && apt install -y curl wget unzip socat
