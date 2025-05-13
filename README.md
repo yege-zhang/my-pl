@@ -1,4 +1,4 @@
-## 一、00|CT8三协议
+## 一、00|CT8vless协议
 * 复制脚本回车根据提示安装：
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/Serv00-CT8/refs/heads/main/00-ct8.sh)
