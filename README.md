@@ -24,5 +24,12 @@ bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/
 ## 五、其他
 *  掉线重新安装即可
 ## 六、卸载及清理
-*  ①结束所有进程：pkill -u $(whoami)
-*  ②卸载：rm -rf /home/$USER/domains/$USER.serv00.net/public_html/*
+*  ①结束所有进程：
+```
+pkill -u $(whoami)
+```
+
+*  ②卸载：
+```
+rm -rf /home/$USER/domains/$USER.serv00.net/public_html/*
+```
