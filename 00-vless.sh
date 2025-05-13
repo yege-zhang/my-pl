@@ -403,9 +403,6 @@ cat << EOF > /home/$USER/domains/$USER.serv00.net/public_html/$USER.html
         <div class="link-box"><button class="copy-btn" onclick="copyText(this)">复制</button> tuic://$UUID:$PASSWORD@cache$hostname_number.serv00.com:$tuic?sni=www.bing.com&congestion_control=bbr&udp_relay_mode=native&alpn=h3&allowinsecure=1#波兰-$NAME@$USER-tuic--cache$hostname_number.serv00.com</div>
         <div class="link-box"><button class="copy-btn" onclick="copyText(this)">复制</button> tuic://$UUID:$PASSWORD@web$hostname_number.serv00.com:$tuic?sni=www.bing.com&congestion_control=bbr&udp_relay_mode=native&alpn=h3&allowinsecure=1#波兰-$NAME@$USER-tuic--web$hostname_number.serv00.com</div>
     </div>
-    <div class="footer">
-        <p><a href="https://chat.222609.xyz" target="_blank">网页客服</a>---<a href="https://blog.222609.xyz" target="_blank">节点安装教程</a></p>
-    </div>
     <script>
         function copyText(button) {
             var text = button.parentElement.textContent.replace("复制", "").trim();
