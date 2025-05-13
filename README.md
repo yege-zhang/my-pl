@@ -1,7 +1,7 @@
 ## 一、00|CT8三协议
 * 复制脚本回车根据提示安装：
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/00-vless.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/Serv00-CT8/refs/heads/main/00-ct8.sh)
 ```
 ## 二、00-vless带socks5
 * 复制脚本回车根据提示安装：
