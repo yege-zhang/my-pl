@@ -9,12 +9,12 @@ bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/Serv00-CT8/refs/hea
 ## 二、00|CT8-hy2交互
 * 复制脚本回车根据提示安装：
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/00-hy2.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/00-hy2U.sh)
 ```
 ## 三、00|CT-hy2无交互
 * 复制脚本回车全自动安装节点：
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/00-hy2U.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/00-hy2.sh)
 ```
 ## 四、ct8-hy2无交互
 * 复制脚本回车全自动安装节点：
