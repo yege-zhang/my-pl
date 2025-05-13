@@ -17,23 +17,6 @@ IP=$(curl -fs ip.sb)
 PASSWORD=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 8)
 REMARK=$(openssl rand -hex 10 | tr -dc '0-9' | head -c 5)
 UUID=$(uuidgen)
-# 通用平台初始化（权限测试与 devil binexec）
-mkdir -p /home/$USER/domains/$USER.serv00.net/public_html
-cat << EOF > /home/$USER/domains/$USER.serv00.net/public_html/1.sh
-#!/bin/bash
-echo "ok"
-EOF
-chmod +x /home/$USER/domains/$USER.serv00.net/public_html/1.sh
-
-if /home/$USER/domains/$USER.serv00.net/public_html/1.sh; then
-  echo "程序权限已开启"
-else
-  devil binexec on
-  echo "首次运行，需要重新登录SSH，输入exit 退出ssh"
-  echo "重新登陆SSH后，再执行一次脚本便可"
-  exit 0
-fi
-
 hostname_number=$(hostname | sed 's/^s\([0-9]*\)\..*/\1/')
 mkdir -p /home/$USER/domains/$USER.serv00.net/public_html
 cat << EOF > /home/$USER/domains/$USER.serv00.net/public_html/1.sh
@@ -62,7 +45,7 @@ sleep 1
 
 read_vless_domain() {
     while true; do
-        red "此脚本本服务器专用"
+        red "此脚本Serv00服务器专用"
         reading "请输入cloudflare添加的主域名 (例如：123456.xyz): " input_domain
         # 验证域名格式
         if [[ "$input_domain" =~ ^[a-zA-Z0-9.-]+$ ]] && [[ "$input_domain" =~ \.[a-zA-Z]{2,}$ ]]; then
