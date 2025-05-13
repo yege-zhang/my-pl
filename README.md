@@ -1,8 +1,8 @@
 ## 一、00-vless三协议
 * 复制脚本回车根据提示安装：bash <(curl -Ls https://github.com/eooce/Sing-box/releases/download/00/2.sh)
-①cf中cname账户用户名指向用户名.serv00.net,开小黄云
-②脚本中输入：cname的主域名
-③域名SSL/TLS加密方式改成灵活
+* ①cf中cname账户用户名指向用户名.serv00.net,开小黄云
+* ②脚本中输入：cname的主域名
+* ③域名SSL/TLS加密方式改成灵活
 ## 二、00-hy2交互
 * 复制脚本回车根据提示安装：bash <(curl -Ls https://github.com/eooce/Sing-box/releases/download/00/2.sh)
 ## 三、00-hy2无交互
