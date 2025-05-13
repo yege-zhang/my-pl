@@ -4,15 +4,15 @@
 # Compatible with serv00 / ct8 platforms
 
 # 智能系统识别
-source /etc/os-release
-if [[ -f /etc/ct8-release ]]; then
-  SYSTEM_TYPE="ct8"
-elif [[ "$ID" == "debian" || "$ID" == "ubuntu" ]]; then
-  SYSTEM_TYPE="serv00"
+if [ -f /etc/ct8-release ]; then
+    SYSTEM_TYPE="ct8"
+elif [ -f /usr/share/serv00-release ]; then
+    SYSTEM_TYPE="serv00"
 else
-  echo "Unsupported system. Exit."
-  exit 1
+    echo "不支持的系统"
+    exit 1
 fi
+
 
 # 检查是否为 root
 [[ $EUID -ne 0 ]] && echo "请使用 root 用户运行本脚本" && exit 1
