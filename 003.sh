@@ -1,23 +1,25 @@
 #!/bin/bash
 
-# 字体颜色输出函数
-function red()    { echo -e "\033[1;91m$1\033[0m"; }
-function green()  { echo -e "\033[1;32m$1\033[0m"; }
-function yellow() { echo -e "\033[1;33m$1\033[0m"; }
-function purple() { echo -e "\033[1;35m$1\033[0m"; }
+# 字体颜色函数
+red="\033[1;91m"
+green="\033[1;32m"
+yellow="\033[1;33m"
+purple="\033[1;35m"
+reset="\033[0m"
+function red() { echo -e "\033[1;91m$1${reset}"; }
 
 # 环境变量
 export LC_ALL=C
 HOSTNAME=$(hostname)
 USERNAME=$(whoami | tr '[:upper:]' '[:lower:]')
 
-# 自动识别站点域名
+# 识别站点域名
 if [[ "$HOSTNAME" =~ ct8 ]]; then
-  CURRENT_DOMAIN="ct8.pl"
+    CURRENT_DOMAIN="ct8.pl"
 elif [[ "$HOSTNAME" =~ hostuno ]]; then
-  CURRENT_DOMAIN="useruno.com"
+    CURRENT_DOMAIN="useruno.com"
 else
-  CURRENT_DOMAIN="serv00.net"
+    CURRENT_DOMAIN="serv00.net"
 fi
 
 USERNAME=$(whoami | tr '[:upper:]' '[:lower:]')
