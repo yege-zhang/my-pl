@@ -9,22 +9,22 @@ bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/sc/refs/heads/main/
 ## 二、00|ct8-hy2无交互
 * 复制脚本回车全自动安装：
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/hy2.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/sc/refs/heads/main/hy2.sh)
 ```
 ## 三、00|ct8-hy2交互
 * 复制脚本回车根据提示安装：
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/hy2u.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/sc/refs/heads/main/hy2u.sh)
 ```
 ## 四、00|ct8-hy2交互强化版
 * 复制脚本回车根据提示安装：
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/hy2y.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/sc/refs/heads/main/hy2y.sh)
 ```
 ## 五、ct8-hy2
 * 复制脚本回车全自动安装：
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/ct8-hy2.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/sc/refs/heads/main/ct8-hy2.sh)
 ```
 ## 六、其他
 *  掉线重新安装即可
