@@ -24,6 +24,11 @@ bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/hy2u.sh)
 ```
+## 五、00|ct8-hy2交互强化版
+* 复制脚本回车根据提示安装：
+```
+bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/hy2y.sh)
+```
 ## 五、ct8-hy2
 * 复制脚本回车全自动安装：
 ```
