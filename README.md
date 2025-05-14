@@ -3,6 +3,9 @@
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/Serv00-CT8/refs/heads/main/003.sh)
 ```
+* ①cf中cname账户用户名指向用户名.serv00.net,开小黄云
+* ②脚本中输入：cname的主域名
+* ③域名SSL/TLS加密方式改成灵活
 ## 二、00-vless+tuic+socks5三协议
 * 复制脚本回车根据提示安装：
 ```
@@ -12,17 +15,17 @@ bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/Serv00-CT8/refs/hea
 * ②脚本中输入：cname的主域名
 * ③域名SSL/TLS加密方式改成灵活
 ## 三、00|ct8-hy2无交互
-* 复制脚本回车全自动安装节点：
+* 复制脚本回车全自动安装：
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/hy2.sh)
 ```
 ## 四、00|ct8-hy2交互
-* 复制脚本回车全自动安装节点：
+* 复制脚本回车根据提示安装：
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/hy2u.sh)
 ```
 ## 五、ct8-hy2
-* 复制脚本回车全自动安装节点：
+* 复制脚本回车全自动安装：
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/ct8-hy2.sh)
 ```
