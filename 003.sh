@@ -1,24 +1,23 @@
 #!/bin/bash
 
-re="\033[0m"
-red="\033[1;91m"
-green="\e[1;32m"
-yellow="\e[1;33m"
-purple="\e[1;35m"
-red() { echo -e "\e[1;91m$1\033[0m"; }
-green() { echo -e "\e[1;32m$1\033[0m"; }
-yellow() { echo -e "\e[1;33m$1\033[0m"; }
-purple() { echo -e "\e[1;35m$1\033[0m"; }
-reading() { read -p "$(red "$1")" "$2"; }
-export LC_ALL=C
+# 字体颜色输出函数
+function red()    { echo -e "\033[1;91m$1\033[0m"; }
+function green()  { echo -e "\033[1;32m$1\033[0m"; }
+function yellow() { echo -e "\033[1;33m$1\033[0m"; }
+function purple() { echo -e "\033[1;35m$1\033[0m"; }
 
-# 检测服务器类型
-if [[ $(hostname) =~ serv00 ]]; then
-    SERVER_TYPE="serv00"
-    address="serv00.net"
+# 环境变量
+export LC_ALL=C
+HOSTNAME=$(hostname)
+USERNAME=$(whoami | tr '[:upper:]' '[:lower:]')
+
+# 自动识别站点域名
+if [[ "$HOSTNAME" =~ ct8 ]]; then
+  CURRENT_DOMAIN="ct8.pl"
+elif [[ "$HOSTNAME" =~ hostuno ]]; then
+  CURRENT_DOMAIN="useruno.com"
 else
-    SERVER_TYPE="ct8"
-    address="useruno.com"
+  CURRENT_DOMAIN="serv00.net"
 fi
 
 USERNAME=$(whoami | tr '[:upper:]' '[:lower:]')
