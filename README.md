@@ -29,14 +29,14 @@ bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/hy2y.sh)
 ```
-## 五、ct8-hy2
+## 六、ct8-hy2
 * 复制脚本回车全自动安装：
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/SC/refs/heads/main/ct8-hy2.sh)
 ```
-## 六、其他
+## 七、其他
 *  掉线重新安装即可
-## 七、卸载及清理
+## 八、卸载及清理
 *  ①结束所有进程：
 ```
 pkill -u $(whoami)
