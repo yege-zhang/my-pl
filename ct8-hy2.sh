@@ -126,17 +126,18 @@ read -p "请输入你的 Telegram Chat ID（可留空跳过）: " TELEGRAM_CHAT_
 if [[ -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_CHAT_ID" ]]; then
   TAG="$NAME@$USER-hy2"
   SUB_URL="hysteria2://$PASSWORD@s$hostname_number.ct8.pl:$hy2/?sni=www.bing.com&alpn=h3&insecure=1#$TAG"
-  ENCODED_LINK=$(echo -n "$SUB_URL" | base64)
-  MSG="HY2 节点部署成功 ✅
+  
+  # Markdown格式消息
+  MSG="**HY2 节点部署成功 ✅**\n\n点击下面的链接复制节点信息:\n\n[节点信息复制链接]($SUB_URL)"
 
-$ENCODED_LINK"
-
-  # 推送到 Telegram
+  # 通过 Telegram Bot 发送 Markdown 格式的消息
   curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
     -d chat_id="${TELEGRAM_CHAT_ID}" \
-    -d text="$MSG"
+    -d text="$MSG" \
+    -d parse_mode="Markdown"
 
   green "已通过 Telegram 发送节点信息。"
 else
   yellow "未提供 Telegram Token 或 Chat ID，跳过推送。"
 fi
+
