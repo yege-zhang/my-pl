@@ -86,7 +86,7 @@ while IFS= read -r line; do
   ((i++))
 done < ip.txt
 
-read -p "请输入你要使用的域名序号（默认自动选第一个）: " user_choice
+read -p "请输入你要使用的域名序号（默认自动选第一个可用）: " user_choice
 if [[ -z "$user_choice" ]]; then
   SELECTED_LINE=$(grep "可用" ip.txt | head -n 1)
 else
@@ -168,24 +168,27 @@ SERVER_NAME=$(echo "$SELECTED_DOMAIN" | cut -d '.' -f 1)
 TAG="$SERVER_NAME@$USERNAME-hy2"
 SUB_URL="hysteria2://$PASSWORD@$SELECTED_DOMAIN:$udp_port/?sni=$MASQUERADE_DOMAIN&alpn=h3&insecure=1#$TAG"
 
-# Telegram 推送功能开始
-read -p "请输入你的 Telegram Bot Token（可留空跳过）: " TELEGRAM_BOT_TOKEN
-read -p "请输入你的 Telegram Chat ID（可留空跳过）: " TELEGRAM_CHAT_ID
+# 用户输入 Telegram 推送参数
+read -p "请输入你的 Telegram Bot Token: " TELEGRAM_BOT_TOKEN
+read -p "请输入你的 Telegram Chat ID: " TELEGRAM_CHAT_ID
 
-if [[ -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_CHAT_ID" ]]; then
-  TAG="$NAME@$USER-hy2"
-  SUB_URL="hysteria2://$PASSWORD@s$hostname_number.ct8.pl:$hy2/?sni=www.bing.com&alpn=h3&insecure=1#$TAG"
-  
-  # Markdown格式消息
-  MSG="**HY2 节点部署成功 ✅**\n\n点击下面的链接复制节点信息:\n\n[节点信息复制链接]($SUB_URL)"
+# Base64 编码
+ENCODED_LINK=$(echo -n "$SUB_URL" | base64)
 
-  # 通过 Telegram Bot 发送 Markdown 格式的消息
-  curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-    -d chat_id="${TELEGRAM_CHAT_ID}" \
-    -d text="$MSG" \
-    -d parse_mode="Markdown"
+# 拼接消息文本
+MSG="HY2 部署成功 ✅
 
-  green "已通过 Telegram 发送节点信息。"
-else
-  yellow "未提供 Telegram Token 或 Chat ID，跳过推送。"
-fi
+$ENCODED_LINK"
+
+# 静默推送
+curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+  -d chat_id="${TELEGRAM_CHAT_ID}" \
+  -d text="$MSG"
+
+# 完成提示
+green "=============================="
+green "HY2 部署成功"
+green "已通过 Telegram 发送信息"
+green "链接如下："
+yellow "$SUB_URL"
+green "=============================="
