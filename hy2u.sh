@@ -82,23 +82,21 @@ done
 echo -e "\\n检测结果如下："
 cat ip.txt
 
-read_ip() {
-cat ip.txt
-reading "请输入上面三个IP中的任意一个 (建议默认回车自动选择可用IP): " IP
-if [[ -z "$IP" ]]; then
-IP=$(grep -m 1 "可用" ip.txt | awk -F ':' '{print $1}')
-if [ -z "$IP" ]; then
-IP=$(okip)
-if [ -z "$IP" ]; then
-IP=$(head -n 1 ip.txt | awk -F ':' '{print $1}')
+read -p "请输入你要使用的域名序号（默认自动选第一个可用）: " user_choice
+if [[ -z "$user_choice" ]]; then
+  SELECTED_LINE=$(grep "可用" ip.txt | head -n 1)
+else
+  SELECTED_LINE=$(sed -n "${user_choice}p" ip.txt)
 fi
-fi
-fi
-echo "$IP" > $WORKDIR/ipone.txt
-IP=$(<$WORKDIR/ipone.txt)
-green "你选择的IP为: $IP"
-}
 
+SELECTED_IP=$(echo "$SELECTED_LINE" | cut -d ':' -f 1)
+SELECTED_DOMAIN=$(echo "$SELECTED_LINE" | cut -d ':' -f 2)
+
+if [[ -z "$SELECTED_IP" || -z "$SELECTED_DOMAIN" ]]; then
+  red "未找到可用 IP，请检查网络或域名状态。"
+  exit 1
+fi
+green "已选择：$SELECTED_DOMAIN （$SELECTED_IP）"
 # UUID 输入或自动生成
 read -p "请输入 UUID（回车自动生成）: " input_uuid
 UUID=${input_uuid:-$(uuidgen)}
