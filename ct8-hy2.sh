@@ -145,7 +145,6 @@ if [[ -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_CHAT_ID" ]]; then
     --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
     --data-urlencode "text=$ENCODED_LINK"
 fi
-
 # 完成提示
 green "=============================="
 green "HY2 部署成功"
