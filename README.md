@@ -6,10 +6,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/sc/refs/heads/main/
 * ①cf中cname账户用户名指向用户名.serv00.net,开小黄云
 * ②脚本中输入：cname的主域名
 * ③域名SSL/TLS加密方式改成灵活
-## 二、00|ct8-hy2
+## 二、00-hy2
 * 复制脚本回车根据提示安装：
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/sc/refs/heads/main/hy2u.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/sc/refs/heads/main/00-hy2.sh)
 ```
 ## 三、ct8-hy2
 * 复制脚本回车全自动安装：
