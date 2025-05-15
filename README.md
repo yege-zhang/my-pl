@@ -28,3 +28,6 @@ pkill -u $(whoami)
 ```
 rm -rf /home/$USER/domains/$USER.serv00.net/public_html/*
 ```
+```
+rm -rf /home/$USER/domains/$USER.ct8.pl/public_html/*
+```
