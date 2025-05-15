@@ -117,15 +117,13 @@ if [[ -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_CHAT_ID" ]]; then
   TAG="$NAME@$USER-hy2"
   SUB_URL="hysteria2://$PASSWORD@s$hostname_number.ct8.pl:$hy2/?sni=www.bing.com&alpn=h3&insecure=1#$TAG"
 
-# 仅发送节点链接，使用 HTML 格式
+# 使用纯文本显示，确保 hysteria2:// 协议不被吞掉
 MESSAGE="HY2 部署成功 ✅
-<a href=\"$SUB_URL\">$SUB_URL</a>"
+$SUB_URL"
 
-# 一次性发送合并后的消息
 curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
   --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
-  --data-urlencode "text=$MESSAGE" \
-  --data-urlencode "parse_mode=HTML"
+  --data-urlencode "text=$MESSAGE"
 fi
 
 green "=============================="
