@@ -119,7 +119,24 @@ else
     (crontab -l ; echo "$cron_job") | crontab -
     echo "保活任务已添加到 crontab。"
 fi
-red "复制当前HY2节点信息"
-red "hysteria2://$PASSWORD@s$hostname_number.ct8.pl:$hy2/?sni=www.bing.com&alpn=h3&insecure=1#$NAME@$USER-hy2-北极之光"
-red ""
+# Telegram 推送功能开始
+read -p "请输入你的 Telegram Bot Token（可留空跳过）: " TELEGRAM_BOT_TOKEN
+read -p "请输入你的 Telegram Chat ID（可留空跳过）: " TELEGRAM_CHAT_ID
 
+if [[ -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_CHAT_ID" ]]; then
+  TAG="$NAME@$USER-hy2"
+  SUB_URL="hysteria2://$PASSWORD@s$hostname_number.ct8.pl:$hy2/?sni=www.bing.com&alpn=h3&insecure=1#$TAG"
+  ENCODED_LINK=$(echo -n "$SUB_URL" | base64)
+  MSG="HY2 节点部署成功 ✅
+
+$ENCODED_LINK"
+
+  # 推送到 Telegram
+  curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+    -d chat_id="${TELEGRAM_CHAT_ID}" \
+    -d text="$MSG"
+
+  green "已通过 Telegram 发送节点信息。"
+else
+  yellow "未提供 Telegram Token 或 Chat ID，跳过推送。"
+fi
