@@ -126,7 +126,6 @@ curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/
   --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
   --data-urlencode "text=$MESSAGE" \
   --data-urlencode "parse_mode=HTML"
-
 fi
 
 green "=============================="
