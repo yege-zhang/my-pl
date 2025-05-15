@@ -175,14 +175,17 @@ read -p "请输入你的 Telegram Chat ID: " TELEGRAM_CHAT_ID
 # Base64 编码
 ENCODED_LINK=$(echo -n "$SUB_URL" | base64)
 
-# 使用 Markdown 格式消息
-MSG="**HY2 节点部署成功 ✅**\n\n点击下面的链接复制节点信息:\n\n[节点信息复制链接]($SUB_URL)"
-
-# 推送消息到 Telegram
+# 第1条：成功提示
 curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
   -d chat_id="${TELEGRAM_CHAT_ID}" \
-  -d text="$MSG" \
-  -d parse_mode="Markdown"
+  -d text="HY2 部署成功 ✅"
+
+sleep 0.5
+
+# 第2条：发送 base64 编码连接
+curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+  -d chat_id="${TELEGRAM_CHAT_ID}" \
+  -d text="$ENCODED_LINK"
 
 # 完成提示
 green "=============================="
