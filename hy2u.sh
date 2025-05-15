@@ -79,10 +79,14 @@ for domain in "${DOMAINS[@]}"; do
   fi
 done
 
-echo -e "\\n检测结果如下："
-cat ip.txt
+echo -e "\n检测结果如下："
+i=1
+while IFS= read -r line; do
+  echo "$i. $line"
+  ((i++))
+done < ip.txt
 
-read -p "请输入你要使用的域名序号（默认自动选第一个可用）: " user_choice
+read -p "请输入你要使用的域名序号（默认自动选第一个）: " user_choice
 if [[ -z "$user_choice" ]]; then
   SELECTED_LINE=$(grep "可用" ip.txt | head -n 1)
 else
@@ -159,7 +163,7 @@ cron_job="*/39 * * * * $WORKDIR/updateweb.sh # hysteria2_keepalive"
 crontab -l 2>/dev/null | grep -q 'hysteria2_keepalive' || \
   (crontab -l 2>/dev/null; echo "$cron_job") | crontab -
 
-# 构建节点分享链接
+# 构建分享链接
 SERVER_NAME=$(echo "$SELECTED_DOMAIN" | cut -d '.' -f 1)
 TAG="$SERVER_NAME@$USERNAME-hy2"
 SUB_URL="hysteria2://$PASSWORD@$SELECTED_DOMAIN:$udp_port/?sni=$MASQUERADE_DOMAIN&alpn=h3&insecure=1#$TAG"
