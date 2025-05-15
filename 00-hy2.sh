@@ -189,6 +189,8 @@ curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/
 
 # 完成提示
 green "=============================="
-green "Hy2 已部署成功"
+green "HY2 部署成功"
 green "已通过 Telegram 发送信息"
+green "链接如下："
+yellow "$SUB_URL"
 green "=============================="
