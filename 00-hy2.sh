@@ -168,43 +168,27 @@ SERVER_NAME=$(echo "$SELECTED_DOMAIN" | cut -d '.' -f 1)
 TAG="$SERVER_NAME@$USERNAME-hy2"
 SUB_URL="hysteria2://$PASSWORD@$SELECTED_DOMAIN:$udp_port/?sni=$MASQUERADE_DOMAIN&alpn=h3&insecure=1#$TAG"
 
-# 转义 MarkdownV2 中特殊字符
-escape_markdown() {
-  echo "$1" | sed -e 's/\./\\./g' \
-                  -e 's/-/\\-/g' \
-                  -e 's/_/\\_/g' \
-                  -e 's/&/\\&/g' \
-                  -e 's/=/\\=/g' \
-                  -e 's/\?/\\?/g' \
-                  -e 's/\//\\\//g' \
-                  -e 's/:/\\:/g' \
-                  -e 's/@/\\@/g' \
-                  -e 's/#/\\#/g'
-}
-
-ESCAPED_URL=$(escape_markdown "$SUB_URL")
-
-# 构建 Telegram MarkdownV2 消息
-MSG="*HY2 节点部署成功 ✅*
-
-点击下面的链接复制节点信息：
-
-[\`点击复制节点信息\`]($ESCAPED_URL)"
-
 # 用户输入 Telegram 推送参数
 read -p "请输入你的 Telegram Bot Token: " TELEGRAM_BOT_TOKEN
 read -p "请输入你的 Telegram Chat ID: " TELEGRAM_CHAT_ID
 
-# 发送 Telegram 消息（使用 MarkdownV2 格式）
+# Base64 编码
+ENCODED_LINK=$(echo -n "$SUB_URL" | base64)
+
+# 第1条：成功提示
 curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
   -d chat_id="${TELEGRAM_CHAT_ID}" \
-  -d text="$MSG" \
-  -d parse_mode="MarkdownV2"
+  -d text="HY2 部署成功 ✅"
+
+sleep 0.5
+
+# 第2条：发送 base64 编码连接
+curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+  -d chat_id="${TELEGRAM_CHAT_ID}" \
+  -d text="$ENCODED_LINK"
 
 # 完成提示
 green "=============================="
-green "HY2 部署成功"
+green "Hy2 已部署成功"
 green "已通过 Telegram 发送信息"
-green "链接如下："
-yellow "$SUB_URL"
 green "=============================="
