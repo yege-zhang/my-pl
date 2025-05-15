@@ -124,22 +124,28 @@ read -p "请输入你的 Telegram Bot Token（可留空跳过）: " TELEGRAM_BOT
 read -p "请输入你的 Telegram Chat ID（可留空跳过）: " TELEGRAM_CHAT_ID
 
 if [[ -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_CHAT_ID" ]]; then
+  # 确保 NAME 被定义，否则使用默认值
+  NAME="${NAME:-defaultName}"
+  
   TAG="$NAME@$USER-hy2"
   SUB_URL="hysteria2://$PASSWORD@s$hostname_number.ct8.pl:$hy2/?sni=www.bing.com&alpn=h3&insecure=1#$TAG"
-  ENCODED_LINK=$(echo -n "$SUB_URL" | base64)
-  MSG="HY2 节点部署成功 ✅
+  
+  # Base64 编码，并去除换行符
+  ENCODED_LINK=$(echo -n "$SUB_URL" | base64 | tr -d '\n')
 
-$ENCODED_LINK"
-
-  # 推送到 Telegram
+  # 第1条：成功提示
   curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-    -d chat_id="${TELEGRAM_CHAT_ID}" \
-    -d text="$MSG"
+    --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+    --data-urlencode "text=HY2 部署成功 ✅"
 
-  green "已通过 Telegram 发送节点信息。"
-else
-  yellow "未提供 Telegram Token 或 Chat ID，跳过推送。"
+  sleep 0.5
+
+  # 第2条：发送 Base64 编码链接
+  curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+    --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+    --data-urlencode "text=$ENCODED_LINK"
 fi
+
 # 完成提示
 green "=============================="
 green "HY2 部署成功"
