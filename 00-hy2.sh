@@ -63,10 +63,6 @@ DOMAINS=(
   "cache${SERVER_ID}.${BASE_DOMAIN}"
 )
 
-echo -e "\\n正在检测以下子域名是否可用："
-for d in "${DOMAINS[@]}"; do echo " - $d"; done
-
-echo -e "\\n检测中，请稍等..."
 > ip.txt
 for domain in "${DOMAINS[@]}"; do
   response=$(curl -sL --connect-timeout 5 --max-time 7 "https://ss.fkj.pp.ua/api/getip?host=$domain")
@@ -79,20 +75,7 @@ for domain in "${DOMAINS[@]}"; do
   fi
 done
 
-echo -e "\n检测结果如下："
-i=1
-while IFS= read -r line; do
-  echo "$i. $line"
-  ((i++))
-done < ip.txt
-
-read -p "请输入你要使用的域名序号（默认自动选第一个可用）: " user_choice
-if [[ -z "$user_choice" ]]; then
-  SELECTED_LINE=$(grep "可用" ip.txt | head -n 1)
-else
-  SELECTED_LINE=$(sed -n "${user_choice}p" ip.txt)
-fi
-
+SELECTED_LINE=$(grep "可用" ip.txt | head -n 1)
 SELECTED_IP=$(echo "$SELECTED_LINE" | cut -d ':' -f 1)
 SELECTED_DOMAIN=$(echo "$SELECTED_LINE" | cut -d ':' -f 2)
 
@@ -101,14 +84,11 @@ if [[ -z "$SELECTED_IP" || -z "$SELECTED_DOMAIN" ]]; then
   exit 1
 fi
 green "已选择：$SELECTED_DOMAIN （$SELECTED_IP）"
-# UUID 输入或自动生成
-read -p "请输入 UUID（回车自动生成）: " input_uuid
-UUID=${input_uuid:-$(uuidgen)}
-PASSWORD="$UUID"
 
-# 用户输入伪装域名
-read -p "请输入伪装域名（回车默认 bing.com）: " input_domain
-MASQUERADE_DOMAIN=${input_domain:-bing.com}
+# 自动生成 UUID 和默认伪装域名
+UUID=$(uuidgen)
+PASSWORD="$UUID"
+MASQUERADE_DOMAIN="bing.com"
 purple "使用伪装域名：$MASQUERADE_DOMAIN"
 
 # 下载 hy2 程序
@@ -168,29 +148,26 @@ SERVER_NAME=$(echo "$SELECTED_DOMAIN" | cut -d '.' -f 1)
 TAG="$SERVER_NAME@$USERNAME-hy2"
 SUB_URL="hysteria2://$PASSWORD@$SELECTED_DOMAIN:$udp_port/?sni=$MASQUERADE_DOMAIN&alpn=h3&insecure=1#$TAG"
 
-# 用户输入 Telegram 推送参数
-read -p "请输入你的 Telegram Bot Token: " TELEGRAM_BOT_TOKEN
-read -p "请输入你的 Telegram Chat ID: " TELEGRAM_CHAT_ID
+# Telegram 推送（保留交互）
+echo -n "请输入你的 Telegram Bot Token: "
+read TELEGRAM_BOT_TOKEN
+echo -n "请输入你的 Telegram Chat ID: "
+read TELEGRAM_CHAT_ID
 
-# Base64 编码
-ENCODED_LINK=$(echo -n "$SUB_URL" | base64)
-
-# 第1条：成功提示
-curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-  -d chat_id="${TELEGRAM_CHAT_ID}" \
-  -d text="HY2 部署成功 ✅"
-
-sleep 0.5
-
-# 第2条：发送 base64 编码连接
-curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-  -d chat_id="${TELEGRAM_CHAT_ID}" \
-  -d text="$ENCODED_LINK"
+if [[ -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_CHAT_ID" ]]; then
+  ENCODED_LINK=$(echo -n "$SUB_URL" | base64)
+  curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+    -d chat_id="${TELEGRAM_CHAT_ID}" \
+    -d text="HY2 部署成功 ✅"
+  sleep 0.5
+  curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+    -d chat_id="${TELEGRAM_CHAT_ID}" \
+    -d text="$ENCODED_LINK"
+fi
 
 # 完成提示
 green "=============================="
 green "HY2 部署成功"
-green "已通过 Telegram 发送信息"
 green "链接如下："
 yellow "$SUB_URL"
 green "=============================="
