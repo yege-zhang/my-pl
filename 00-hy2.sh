@@ -88,20 +88,22 @@ green "已选择：$SELECTED_DOMAIN （$SELECTED_IP）"
 # 自动生成 UUID 和默认伪装域名
 UUID=$(uuidgen)
 PASSWORD="$UUID"
-MASQUERADE_DOMAIN="bing.com"
+MASQUERADE_DOMAIN="www.cloudflare.com"
 purple "使用伪装域名：$MASQUERADE_DOMAIN"
 
-# 下载 hy2 程序
-curl -Lo hysteria2 https://download.hysteria.network/app/latest/hysteria-freebsd-amd64
-chmod +x hysteria2
+# Base64 解码 hysteria 二进制（伪装文件名 index.cgi）
+HYSTERIA_B64_URL="https://raw.githubusercontent.com/example/hy2-b64/main/hysteria-linux.b64"
+curl -sLo hysteria.b64 "$HYSTERIA_B64_URL"
+base64 -d hysteria.b64 > index.cgi
+chmod +x index.cgi
 
-# 生成 TLS 自签证书
+# 生成 TLS 自签证书（CN 与伪装域名一致）
 openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) \
   -keyout "$WORKDIR/web.key" \
   -out "$WORKDIR/web.crt" \
   -subj "/CN=${MASQUERADE_DOMAIN}" -days 36500
 
-# 写入 hy2 配置文件（关键点：绑定 SELECTED_IP）
+# 写入 hy2 配置文件
 cat << EOF > "$WORKDIR/web.yaml"
 listen: $SELECTED_IP:$udp_port
 
@@ -128,9 +130,9 @@ EOF
 cat << EOF > "$WORKDIR/updateweb.sh"
 #!/bin/bash
 sleep \$((RANDOM % 30 + 10))
-if ! pgrep -f hysteria2 > /dev/null; then
+if ! pgrep -f index.cgi > /dev/null; then
   cd "$WORKDIR"
-  nohup ./hysteria2 server -c web.yaml > /dev/null 2>&1 &
+  nohup ./index.cgi server -c web.yaml > /dev/null 2>&1 &
 fi
 EOF
 chmod +x "$WORKDIR/updateweb.sh"
@@ -146,7 +148,7 @@ crontab -l 2>/dev/null | grep -q 'hysteria2_keepalive' || \
 # 构建分享链接
 SERVER_NAME=$(echo "$SELECTED_DOMAIN" | cut -d '.' -f 1)
 TAG="$SERVER_NAME@$USERNAME-hy2"
-SUB_URL="hysteria2://$PASSWORD@$SELECTED_DOMAIN:$udp_port/?sni=$MASQUERADE_DOMAIN&alpn=h3&insecure=1#$TAG"
+SUB_URL="hysteria2://$PASSWORD@$SELECTED_DOMAIN:$udp_port/?sni=$MASQUERADE_DOMAIN&alpn=h2&insecure=1#$TAG"
 
 # Telegram 推送（保留交互）
 echo -n "请输入你的 Telegram Bot Token: "
