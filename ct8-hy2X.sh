@@ -12,10 +12,11 @@ purple() { echo -e "\e[1;35m$1\033[0m"; }
 reading() { read -p "$(red "$1")" "$2"; }
 export LC_ALL=C
 
+# 更稳的检测方式（使用Cloudflare）
 check_ip_blocked() {
     ip=$1
-    curl -s --connect-timeout 2 --interface "$ip" https://www.google.com > /dev/null
-    if [ $? -eq 0 ]; then
+    result=$(curl --connect-timeout 3 --interface "$ip" -s https://1.1.1.1/cdn-cgi/trace 2>/dev/null)
+    if [[ "$result" == *"colo="* ]]; then
         echo "ok"
     else
         echo "blocked"
@@ -52,21 +53,20 @@ select_ip() {
     done
 
     if [ ${#usable_ips[@]} -eq 0 ]; then
-        echo -e "\n❌ 没有检测到可用 IP，退出安装。"
-        exit 1
-    fi
-
-    echo -e "\n✅ 检测到可用 IP："
-    for i in "${!usable_ips[@]}"; do
-        echo "  [$i] ${usable_ips[$i]}"
-    done
-
-    echo -ne "\n👉 请输入用于安装的 IP 编号（默认 0，即 ${usable_ips[0]}）："
-    read -r ip_choice
-    if [[ -z "$ip_choice" || ! "$ip_choice" =~ ^[0-9]+$ || "$ip_choice" -ge "${#usable_ips[@]}" ]]; then
-        selected_ip="${usable_ips[0]}"
+        echo -e "\n⚠️ 检测不到可用 IP，强制使用第一个本地 IP：${all_ips[0]}"
+        selected_ip="${all_ips[0]}"
     else
-        selected_ip="${usable_ips[$ip_choice]}"
+        echo -e "\n✅ 检测到可用 IP："
+        for i in "${!usable_ips[@]}"; do
+            echo "  [$i] ${usable_ips[$i]}"
+        done
+        echo -ne "\n👉 请输入用于安装的 IP 编号（默认 0，即 ${usable_ips[0]}）："
+        read -r ip_choice
+        if [[ -z "$ip_choice" || ! "$ip_choice" =~ ^[0-9]+$ || "$ip_choice" -ge "${#usable_ips[@]}" ]]; then
+            selected_ip="${usable_ips[0]}"
+        else
+            selected_ip="${usable_ips[$ip_choice]}"
+        fi
     fi
 
     echo -e "\n📌 使用 IP：$selected_ip 继续安装...\n"
