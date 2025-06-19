@@ -50,7 +50,6 @@ if [ -z "$SELECTED_IP" ]; then print_red "IP和域名选择失败，正在退出
 print_purple "您选择的IP是: $SELECTED_IP (对应域名: $SELECTED_DOMAIN)"
 
 # --- 步骤 2: 准备环境和文件 ---
-# 使用一个规范的、与工作脚本一致的目录结构
 WORKDIR="${HOME}/domains/${SELECTED_DOMAIN}/hysteria2"
 print_green "--- 步骤2: 准备环境 (目录: $WORKDIR) ---"
 mkdir -p "$WORKDIR"; pkill -f "hysteria-freebsd-amd64"; cd "$WORKDIR" || exit
@@ -58,11 +57,25 @@ rm -rf ./*
 
 # --- 步骤 3: 下载和配置Hysteria2 ---
 print_green "--- 步骤3: 下载并配置Hysteria2 ---"
-wget https://github.com/apernet/hysteria/releases/download/v2.3.1/hysteria-freebsd-amd64
+# --- 升级：自动获取最新版本并下载 ---
+print_purple "正在自动查询Hysteria2最新版本号..."
+LATEST_VERSION=$(curl -s "https://api.github.com/repos/apernet/hysteria/releases/latest" | grep '"tag_name":' | cut -d'"' -f4)
+if [ -z "$LATEST_VERSION" ]; then
+    print_red "自动获取最新版本号失败！请检查网络或稍后再试。"; exit 1
+fi
+print_purple "检测到最新版本为: $LATEST_VERSION"
+DOWNLOAD_URL="https://github.com/apernet/hysteria/releases/download/${LATEST_VERSION}/hysteria-freebsd-amd64"
+print_purple "正在从以下地址下载: $DOWNLOAD_URL"
+
+wget "$DOWNLOAD_URL"
+
 if [ ! -s "hysteria-freebsd-amd64" ]; then
     print_red "错误: Hysteria2 程序下载失败！请检查网络。"; exit 1
 fi
 chmod +x hysteria-freebsd-amd64
+print_green "Hysteria2 下载并授权成功。"
+
+# --- 继续配置流程 ---
 openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) -keyout web.key -out web.crt -subj "/CN=bing.com" -days 36500
 
 cat << EOF > config.yaml
