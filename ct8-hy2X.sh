@@ -28,83 +28,111 @@ select_ip_and_domain_interactive() {
     echo "${ip_array[$selected_index]}:${domain_array[$selected_index]}"
 }
 
-# --- 主脚本逻辑 ---
-export LC_ALL=C
-HOSTNAME=$(hostname); NAME=$(echo "$HOSTNAME" | cut -d '.' -f 1)
-PASSWORD=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 8)
+# --- 函数：以可靠的方式添加UDP端口 ---
+add_udp_port_robustly() {
+    while true; do
+        local udp_port; udp_port=$(shuf -i 10000-65535 -n 1)
+        local result; result=$(devil port add udp "$udp_port" 2>&1)
+        if [[ "$result" == *"Ok"* ]]; then
+            print_green "成功添加UDP端口: $udp_port"
+            echo "$udp_port"; break
+        else
+            sleep 0.1
+        fi
+    done
+}
 
-# --- 步骤 1: 用户输入和动态选择 ---
-print_yellow "=================================================================="
-print_yellow "重要：在继续之前，请确保您已经登录服务商的网页控制面板，"
-print_yellow "手动开启了一个UDP端口供Hysteria2使用。"
-print_yellow "=================================================================="
-echo "" >&2
-reading "请输入您在网页面板上已开启的UDP端口: " hy2_port
-if ! [[ "$hy2_port" =~ ^[0-9]+$ ]] || [ "$hy2_port" -lt 1 ] || [ "$hy2_port" -gt 65535 ]; then
-    print_red "端口输入错误，脚本退出。"; exit 1
-fi
-print_purple "您指定的Hysteria2端口为: $hy2_port"
+# --- 核心逻辑：两段式端口检查和配置 ---
+check_and_configure_ports() {
+    print_green "--- 步骤1: 检查端口配置 ---"
+    local udp_port_count
+    udp_port_count=$(devil port list | grep -c "udp")
 
-IFS=':' read -r SELECTED_IP SELECTED_DOMAIN < <(select_ip_and_domain_interactive)
-if [ -z "$SELECTED_IP" ]; then print_red "IP和域名选择失败，正在退出。"; exit 1; fi
-print_purple "您选择的IP是: $SELECTED_IP (对应域名: $SELECTED_DOMAIN)"
+    if [ "$udp_port_count" -ne 1 ]; then
+        print_yellow "端口数量不符合要求(需要1个UDP端口)，正在自动调整..."
+        print_purple "正在清理所有旧的UDP端口..."
+        devil port list | awk '/udp/ {print $1}' | while read -r port; do
+            devil port del udp "$port" >/dev/null 2>&1
+        done
+        
+        print_purple "正在自动寻找并添加一个可用的UDP端口..."
+        add_udp_port_robustly >/dev/null # 添加端口，并隐藏输出
+        
+        print_green "=================================================================="
+        print_green "端口已自动配置完成！"
+        print_yellow "为了使新端口在所有IP上完全生效，请您立即重新执行一次此脚本。"
+        print_green "=================================================================="
+        exit 0
+    else
+        print_green "端口配置正确 (已存在1个UDP端口)，继续安装..."
+        local hy2_port
+        hy2_port=$(devil port list | awk '/udp/ {print $1}')
+        echo "$hy2_port"
+    fi
+}
 
-# --- 步骤 2: 准备环境和文件 ---
-WORKDIR="${HOME}/domains/${SELECTED_DOMAIN}/hysteria2"
-print_green "--- 步骤2: 准备环境 (目录: $WORKDIR) ---"
-mkdir -p "$WORKDIR"; pkill -f "hysteria-freebsd-amd64"; cd "$WORKDIR" || exit
-rm -rf ./*
+# --- 主脚本执行流程 ---
+main() {
+    local hy2_port
+    hy2_port=$(check_and_configure_ports)
+    if [ -z "$hy2_port" ]; then return; fi
+    print_purple "检测到可用UDP端口为: $hy2_port"
 
-# --- 步骤 3: 下载和配置Hysteria2 ---
-print_green "--- 步骤3: 下载并配置Hysteria2 ---"
-LATEST_VERSION=$(curl -s "https://api.github.com/repos/apernet/hysteria/releases/latest" | grep '"tag_name":' | cut -d'"' -f4)
-if [ -z "$LATEST_VERSION" ]; then print_red "自动获取最新版本号失败！"; exit 1; fi
-DOWNLOAD_URL="https://github.com/apernet/hysteria/releases/download/${LATEST_VERSION}/hysteria-freebsd-amd64"
-print_purple "正在下载Hysteria2最新版: $LATEST_VERSION"
-wget -q "$DOWNLOAD_URL"
-if [ ! -s "hysteria-freebsd-amd64" ]; then print_red "错误: Hysteria2 程序下载失败！"; exit 1; fi
-chmod +x hysteria-freebsd-amd64
-print_green "Hysteria2 下载并授权成功。"
-openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) -keyout web.key -out web.crt -subj "/CN=bing.com" -days 36500
+    export LC_ALL=C
+    HOSTNAME=$(hostname); NAME=$(echo "$HOSTNAME" | cut -d '.' -f 1)
+    PASSWORD=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 8)
 
-# --- 最终修正 ---
-# 将 listen 地址从 ":$hy2_port" (监听所有IP) 改为 "${SELECTED_IP}:${hy2_port}" (只监听选定的IP)
-cat << EOF > config.yaml
+    print_green "--- 步骤2: 动态选择IP和域名 ---"
+    IFS=':' read -r SELECTED_IP SELECTED_DOMAIN < <(select_ip_and_domain_interactive)
+    if [ -z "$SELECTED_IP" ]; then print_red "IP和域名选择失败，正在退出。"; exit 1; fi
+    print_purple "您选择的IP是: $SELECTED_IP (对应域名: $SELECTED_DOMAIN)"
+
+    local WORKDIR="${HOME}/domains/${SELECTED_DOMAIN}/hysteria2"
+    print_green "--- 步骤3: 准备环境 (目录: $WORKDIR) ---"
+    mkdir -p "$WORKDIR"; pkill -f "hysteria-freebsd-amd64"; cd "$WORKDIR" || exit
+    rm -rf ./*
+
+    print_green "--- 步骤4: 下载并配置Hysteria2 ---"
+    local LATEST_VERSION
+    LATEST_VERSION=$(curl -s "https://api.github.com/repos/apernet/hysteria/releases/latest" | grep '"tag_name":' | cut -d'"' -f4)
+    if [ -z "$LATEST_VERSION" ]; then print_red "自动获取最新版本号失败！"; exit 1; fi
+    local DOWNLOAD_URL="https://github.com/apernet/hysteria/releases/download/${LATEST_VERSION}/hysteria-freebsd-amd64"
+    print_purple "正在下载Hysteria2最新版: $LATEST_VERSION"
+    wget -q "$DOWNLOAD_URL"
+    if [ ! -s "hysteria-freebsd-amd64" ]; then print_red "错误: Hysteria2 程序下载失败！"; exit 1; fi
+    chmod +x hysteria-freebsd-amd64
+    openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) -keyout web.key -out web.crt -subj "/CN=bing.com" -days 36500
+
+    cat << EOF > config.yaml
 listen: ${SELECTED_IP}:${hy2_port}
-tls:
-  cert: ${WORKDIR}/web.crt
-  key: ${WORKDIR}/web.key
-auth:
-  type: password
-  password: $PASSWORD
-masquerade:
-  type: proxy
-  proxy:
-    url: https://bing.com
-    rewriteHost: true
+tls: {cert: ${WORKDIR}/web.crt, key: ${WORKDIR}/web.key}
+auth: {type: password, password: $PASSWORD}
+masquerade: {type: proxy, proxy: {url: https://bing.com, rewriteHost: true}}
 EOF
-print_green "配置文件已生成，服务将明确监听在 $SELECTED_IP"
+    print_green "配置文件已生成，服务将明确监听在 $SELECTED_IP"
 
-# --- 步骤 4: 设置守护进程 ---
-print_green "--- 步骤4: 启动服务并设置守护任务 ---"
-cat << EOF > updateweb.sh
+    print_green "--- 步骤5: 启动服务并设置守护任务 ---"
+    cat << EOF > updateweb.sh
 #!/bin/bash
 if pgrep -f "hysteria-freebsd-amd64 server" > /dev/null; then exit 0; else
     cd "$WORKDIR" || exit
     nohup ./hysteria-freebsd-amd64 server --config config.yaml > /dev/null 2>&1 &
 fi
 EOF
-chmod +x updateweb.sh; ./updateweb.sh
-(crontab -l 2>/dev/null | grep -v "updateweb.sh"; echo "*/10 * * * * ${WORKDIR}/updateweb.sh") | crontab -
-print_green "服务已启动，守护任务已设置。"
+    chmod +x updateweb.sh; ./updateweb.sh
+    (crontab -l 2>/dev/null | grep -v "updateweb.sh"; echo "*/10 * * * * ${WORKDIR}/updateweb.sh") | crontab -
+    print_green "服务已启动，守护任务已设置。"
 
-# --- 最终输出 ---
-print_green "--- ✅ 安装完成 ---"
-print_yellow "Hysteria2链接已生成。您可以使用IP或对应的域名作为地址进行连接："
-echo "" >&2
-print_purple "使用IP地址的链接 (推荐):"
-echo -e "\e[1;91mhysteria2://$PASSWORD@$SELECTED_IP:$hy2_port/?sni=www.bing.com&alpn=h3&insecure=1#$NAME-IP\e[0m" >&2
-echo "" >&2
-print_purple "使用域名的链接:"
-echo -e "\e[1;91mhysteria2://$PASSWORD@$SELECTED_DOMAIN:$hy2_port/?sni=www.bing.com&alpn=h3&insecure=1#$NAME-Domain\e[0m" >&2
-echo "" >&2
+    print_green "--- ✅ 安装完成 ---"
+    print_yellow "Hysteria2链接已生成。您可以使用IP或对应的域名作为地址进行连接："
+    echo "" >&2
+    print_purple "使用IP地址的链接 (推荐):"
+    echo -e "\e[1;91mhysteria2://$PASSWORD@$SELECTED_IP:$hy2_port/?sni=www.bing.com&alpn=h3&insecure=1#$NAME-IP\e[0m" >&2
+    echo "" >&2
+    print_purple "使用域名的链接:"
+    echo -e "\e[1;91mhysteria2://$PASSWORD@$SELECTED_DOMAIN:$hy2_port/?sni=www.bing.com&alpn=h3&insecure=1#$NAME-Domain\e[0m" >&2
+    echo "" >&2
+}
+
+# --- 运行主函数 ---
+main
