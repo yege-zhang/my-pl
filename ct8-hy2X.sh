@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# ------------------- 基础配色函数 -------------------
 re="\033[0m"
 red="\033[1;91m"
 green="\e[1;32m"
@@ -12,7 +13,7 @@ purple() { echo -e "\e[1;35m$1\033[0m"; }
 reading() { read -p "$(red "$1")" "$2"; }
 export LC_ALL=C
 
-# 检测 IP 是否可用（被墙判断）
+# ------------------- IP 检测与选择逻辑 -------------------
 check_ip_blocked() {
     ip=$1
     curl -s --connect-timeout 2 --interface "$ip" https://www.google.com > /dev/null
@@ -23,7 +24,6 @@ check_ip_blocked() {
     fi
 }
 
-# 获取本机 IP 地址 + 公网 IP
 get_ips() {
     ip_list=()
     ip_list+=($(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}'))
@@ -34,7 +34,6 @@ get_ips() {
     echo "${ip_list[@]}"
 }
 
-# 用户选择未被墙的 IP
 select_ip() {
     echo -e "\n🔍 正在获取并检测本机 IP..."
     all_ips=($(get_ips))
@@ -76,7 +75,7 @@ select_ip() {
     export SELECTED_IP="$selected_ip"
 }
 
-# 开始执行主安装逻辑
+# ------------------- 安装主逻辑 -------------------
 select_ip
 
 HOSTNAME=$(hostname)
@@ -118,12 +117,9 @@ done
 
 # 添加1 个 UDP 端口
 devil port add udp random
-
-# 等待端口生效（如果 devil 有延迟）
 sleep 2
 
 udp_ports=($(devil port list | awk 'NR>1 && $2 == "udp" { print $1 }'))
-
 if [[ ${#udp_ports[@]} -ge 1 ]]; then
     hy2=${udp_ports[0]}
     echo "hy2=$hy2"
@@ -158,29 +154,27 @@ masquerade:
 EOF
 
 cat << EOF > /home/$USER/web/updateweb.sh
-
 #!/bin/bash
 if ps -aux | grep -v grep | grep -q "pyy.py"; then
 	cd /home/$USER/web
-
     exit 0
 else
-                cd /home/$USER/web
-                nohup ./pyy.py server -c web.yaml > /dev/null 2>&1 &
-
-
+	cd /home/$USER/web
+	nohup ./pyy.py server -c web.yaml > /dev/null 2>&1 &
 fi
 EOF
+
 chmod +x updateweb.sh
 ./updateweb.sh
+
 cron_job="*/39 * * * * /home/$USER/web/updateweb.sh"
-# 检查任务是否已存在
 if crontab -l | grep -q "updateweb.sh"; then
     echo "保活任务已存在，跳过添加。"
 else
     (crontab -l ; echo "$cron_job") | crontab -
     echo "保活任务已添加到 crontab。"
 fi
+
 red "复制当前HY2节点信息"
 red "hysteria2://$PASSWORD@s$hostname_number.ct8.pl:$hy2/?sni=www.bing.com&alpn=h3&insecure=1#$NAME@$USER-hy2"
 red ""
