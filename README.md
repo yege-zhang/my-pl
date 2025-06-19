@@ -16,14 +16,9 @@ bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/sc/refs/heads/main/
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/sc/refs/heads/main/ct8-hy2.sh)
 ```
-## 四、ct8-hy2
-* 复制脚本交互安装：
-```
-bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/sc/refs/heads/main/ct8-hy2X.sh)
-```
-## 五、其他
+## 四、其他
 *  掉线重新安装即可
-## 六、卸载及清理
+## 五、卸载及清理
 *  ①结束所有进程：
 ```
 pkill -u $(whoami)
