@@ -56,7 +56,7 @@ check_and_configure_ports() {
         done
         
         print_purple "正在自动寻找并添加一个可用的UDP端口..."
-        add_udp_port_robustly >/dev/null # 添加端口，并隐藏输出
+        add_udp_port_robustly >/dev/null # 添加端口，并隐藏端口号
         
         print_green "=================================================================="
         print_green "端口已自动配置完成！"
@@ -123,15 +123,51 @@ EOF
     (crontab -l 2>/dev/null | grep -v "updateweb.sh"; echo "*/10 * * * * ${WORKDIR}/updateweb.sh") | crontab -
     print_green "服务已启动，守护任务已设置。"
 
+    # --- 最终输出与TG推送 ---
     print_green "--- ✅ 安装完成 ---"
-    print_yellow "Hysteria2链接已生成。您可以使用IP或对应的域名作为地址进行连接："
-    echo "" >&2
-    print_purple "使用IP地址的链接 (推荐):"
-    echo -e "\e[1;91mhysteria2://$PASSWORD@$SELECTED_IP:$hy2_port/?sni=www.bing.com&alpn=h3&insecure=1#$NAME-IP\e[0m" >&2
-    echo "" >&2
-    print_purple "使用域名的链接:"
-    echo -e "\e[1;91mhysteria2://$PASSWORD@$SELECTED_DOMAIN:$hy2_port/?sni=www.bing.com&alpn=h3&insecure=1#$NAME-Domain\e[0m" >&2
-    echo "" >&2
+    
+    # 构建节点链接
+    local USER=$(whoami)
+    local TAG_IP="$NAME@$USER-IP"
+    local TAG_DOMAIN="$NAME@$USER-Domain"
+    local LINK_IP="hysteria2://$PASSWORD@$SELECTED_IP:$hy2_port/?sni=www.bing.com&alpn=h3&insecure=1#$TAG_IP"
+    local LINK_DOMAIN="hysteria2://$PASSWORD@$SELECTED_DOMAIN:$hy2_port/?sni=www.bing.com&alpn=h3&insecure=1#$TAG_DOMAIN"
+
+    # TG推送功能
+    local TELEGRAM_BOT_TOKEN
+    local TELEGRAM_CHAT_ID
+    local TELEGRAM_SUCCESS="no"
+    read -p "请输入你的 Telegram Bot Token（可回车跳过）: " TELEGRAM_BOT_TOKEN
+    read -p "请输入你的 Telegram Chat ID（可回车跳过）: " TELEGRAM_CHAT_ID
+
+    if [[ -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_CHAT_ID" ]]; then
+      print_purple "正在推送到 Telegram..."
+      # 发送成功消息
+      curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" --data-urlencode "text=✅ HY2 部署成功"
+      sleep 0.5
+      # 发送节点信息
+      local TG_MESSAGE="节点详情如下：
+
+IP链接:
+\`${LINK_IP}\`
+
+域名链接:
+\`${LINK_DOMAIN}\`"
+      curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" --data-urlencode "text=${TG_MESSAGE}" --data-urlencode "parse_mode=Markdown"
+      TELEGRAM_SUCCESS="yes"
+    fi
+    
+    # 最终屏幕显示
+    echo "" >&2 # 增加一个空行
+    green "=============================================="
+    green " HY2 部署成功"
+    if [[ "$TELEGRAM_SUCCESS" == "yes" ]]; then
+        green " 已通过 Telegram 发送节点信息"
+    fi
+    green " 链接如下："
+    yellow "$LINK_IP"
+    yellow "$LINK_DOMAIN"
+    green "=============================================="
 }
 
 # --- 运行主函数 ---
