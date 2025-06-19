@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# ------------------- 基础配色函数 -------------------
 re="\033[0m"
 red="\033[1;91m"
 green="\e[1;32m"
@@ -13,7 +12,6 @@ purple() { echo -e "\e[1;35m$1\033[0m"; }
 reading() { read -p "$(red "$1")" "$2"; }
 export LC_ALL=C
 
-# ------------------- IP 检测与选择逻辑 -------------------
 check_ip_blocked() {
     ip=$1
     curl -s --connect-timeout 2 --interface "$ip" https://www.google.com > /dev/null
