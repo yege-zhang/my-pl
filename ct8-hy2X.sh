@@ -11,77 +11,37 @@ yellow() { echo -e "\e[1;33m$1\033[0m"; }
 purple() { echo -e "\e[1;35m$1\033[0m"; }
 reading() { read -p "$(red "$1")" "$2"; }
 
-# Função para verificar o status de um único IP (se está bloqueado)
-check_ip_status() {
-    local ip=$1
-    local api_url="https://status.eooce.com/api"
-    # Usa grep/cut para evitar a dependência do jq
-    local response=$(curl -s --max-time 2 "${api_url}/${ip}")
-    local status=$(echo "$response" | grep -o '"status":"[^"]*"' | cut -d':' -f2 | tr -d '"')
-
-    if [[ "$status" == "Available" ]]; then
-        echo "Available"
-    else
-        echo "Blocked"
-    fi
-}
-
-# Função para exibir IPs e permitir que o usuário selecione um
+# 函数：显示IP列表并让用户选择
 select_ip_interactive() {
-    purple "Buscando lista de IPs do servidor e verificando status..."
+    purple "正在获取服务器IP列表..."
     local ip_list=($(devil vhost list | awk '/^[0-9]+/ {print $1}'))
     
     if [ ${#ip_list[@]} -eq 0 ]; then
-        red "Não foi possível obter nenhum endereço IP do servidor."
+        red "未能从服务器获取任何IP地址。"
         exit 1
     fi
 
-    local statuses=()
-    local first_available_index=-1
-
-    # Preenche os status e encontra o primeiro IP disponível
+    # 向用户显示IP列表
+    green "请选择要使用的IP地址:"
     for i in "${!ip_list[@]}"; do
         local ip=${ip_list[$i]}
-        local status=$(check_ip_status "$ip")
-        statuses[$i]=$status
-        if [[ "$status" == "Available" && $first_available_index -eq -1 ]]; then
-            first_available_index=$i
-        fi
+        echo "$((i+1)). $ip"
     done
 
-    # Exibe a lista para o usuário
-    green "Por favor, selecione um IP para usar:"
-    for i in "${!ip_list[@]}"; do
-        local ip=${ip_list[$i]}
-        local status=${statuses[$i]}
-        local display_status=""
-        if [[ "$status" == "Available" ]]; then
-            display_status="$(green '(Disponível)')"
-        else
-            display_status="$(red '(Bloqueado)')"
-        fi
-        echo "$((i+1)). $ip ${display_status}"
-    done
-
-    if [ $first_available_index -eq -1 ]; then
-        red "Nenhum IP disponível (não bloqueado) encontrado. Não é possível continuar."
-        exit 1
-    fi
-
-    # Solicita a seleção
-    local default_choice=$((first_available_index + 1))
+    # 提示用户选择，默认值为1
+    local default_choice=1
     local choice
-    reading "Digite o número do IP que deseja usar (padrão: $default_choice, o primeiro IP disponível): " choice
+    reading "请输入您想使用的IP序号 (默认选择第一个): " choice
     choice=${choice:-$default_choice}
 
-    # Validação da escolha (validação simples)
+    # 验证用户的选择
     if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt ${#ip_list[@]} ]; then
-        red "Seleção inválida. Usando o IP padrão."
+        red "无效的选择。将使用默认IP (列表中的第一个)。"
         choice=$default_choice
     fi
     
     local selected_ip=${ip_list[$((choice-1))]}
-    purple "Você selecionou: $selected_ip"
+    purple "您已选择: $selected_ip"
     echo "$selected_ip"
 }
 
@@ -94,10 +54,10 @@ REMARK=$(openssl rand -hex 10 | tr -dc '0-9' | head -c 5)
 UUID=$(uuidgen)
 hostname_number=$(hostname | sed 's/^s\([0-9]*\)\..*/\1/')
 
-# Chama a função para selecionar o IP
+# 调用函数来选择IP
 SELECTED_IP=$(select_ip_interactive)
 if [ -z "$SELECTED_IP" ]; then
-    red "Falha na seleção de IP. Saindo."
+    red "IP选择失败，正在退出。"
     exit 1
 fi
 
@@ -110,11 +70,11 @@ EOF
 chmod +x /home/$USER/1.sh
 
 if /home/$USER/1.sh; then
-  echo "Permissão de programa ativada"
+  echo "程序权限已开启"
 else
   devil binexec on
-  echo "Primeira execução, é necessário relogar no SSH, digite exit para sair do ssh"
-  echo "Após relogar no SSH, execute o script mais uma vez"
+  echo "首次运行，需要重新登录SSH，输入exit 退出ssh"
+  echo "重新登陆SSH后，再执行一次脚本便可"
   exit 0
 fi
 
@@ -123,18 +83,18 @@ cd /home/$USER/web
 rm -rf /home/$USER/web/*
 sleep 1
 
-# Deleta todas as portas UDP já abertas
+# 删除所有已开放UDP端口
 devil port list | awk 'NR>1 && $1 ~ /^[0-9]+$/ { print $1, $2 }' | while read -r port type; do
     if [[ "$type" == "udp" ]]; then
-        echo "Deletando porta UDP: $port"
+        echo "删除 UDP 端口: $port"
         devil port del udp "$port"
     fi
 done
 
-# Adiciona 1 porta UDP
+# 添加1 个 UDP 端口
 devil port add udp random
 
-# Espera a porta ter efeito (se o devil tiver atraso)
+# 等待端口生效
 sleep 2
 
 udp_ports=($(devil port list | awk 'NR>1 && $2 == "udp" { print $1 }'))
@@ -143,7 +103,7 @@ if [[ ${#udp_ports[@]} -ge 1 ]]; then
     hy2=${udp_ports[0]}
     echo "hy2=$hy2"
 else
-    echo "Nenhuma porta UDP encontrada, não é possível atribuir hy2"
+    echo "未找到 UDP 端口，无法赋值 hy2"
     exit 1
 fi
 
@@ -185,13 +145,13 @@ EOF
 chmod +x updateweb.sh
 ./updateweb.sh
 cron_job="*/39 * * * * /home/$USER/web/updateweb.sh"
-# Verifica se a tarefa já existe
+# 检查任务是否已存在
 if crontab -l | grep -q "updateweb.sh"; then
-    echo "Tarefa de manutenção já existe, pulando adição."
+    echo "保活任务已存在，跳过添加。"
 else
     (crontab -l ; echo "$cron_job") | crontab -
-    echo "Tarefa de manutenção adicionada ao crontab."
+    echo "保活任务已添加到 crontab。"
 fi
-red "Copie as informações do nó HY2 atual"
+red "复制当前HY2节点信息"
 red "hysteria2://$PASSWORD@$SELECTED_IP:$hy2/?sni=www.bing.com&alpn=h3&insecure=1#$NAME@$USER-hy2"
 red ""
