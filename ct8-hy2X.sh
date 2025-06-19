@@ -10,110 +10,66 @@ reading() { read -p "$(echo -e "\e[1;91m$1\e[0m")" "$2"; }
 # --- 函数：动态检测并交互式选择IP和域名 ---
 select_ip_and_domain_interactive() {
     print_purple "正在动态检测您账户下的IP和域名..."
-    
-    local ip_array=()
-    local domain_array=()
-    local display_array=()
-    
-    # 动态解析 `devil vhost list` 的输出
-    # 假设格式为: IP地址 域名 ...
+    local ip_array=() domain_array=() display_array=()
     while read -r ip domain rest; do
-        # 确保我们只处理看起来是IP地址的行
         if [[ "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-            ip_array+=("$ip")
-            domain_array+=("$domain")
-            display_array+=("$ip ($domain)")
+            ip_array+=("$ip"); domain_array+=("$domain"); display_array+=("$ip ($domain)")
         fi
     done < <(devil vhost list)
-
-    if [ ${#ip_array[@]} -eq 0 ]; then
-        print_red "未能动态检测到任何IP地址和域名。"; exit 1;
-    fi
-
-    print_green "请选择要使用的IP地址和对应的域名:"
-    for i in "${!display_array[@]}"; do
-        echo "$((i+1)). ${display_array[$i]}" >&2
-    done
-
+    if [ ${#ip_array[@]} -eq 0 ]; then print_red "未能动态检测到任何IP和域名。"; exit 1; fi
+    print_green "请选择要使用的IP地址 (这将决定最终链接中的地址):"
+    for i in "${!display_array[@]}"; do echo "$((i+1)). ${display_array[$i]}" >&2; done
     local default_choice=1; local choice
     reading "请输入您想使用的序号 (默认选择第一个): " choice; choice=${choice:-$default_choice}
     if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt ${#display_array[@]} ]; then
-        print_red "无效的选择。将使用默认选项 (列表中的第一个)。"; choice=$default_choice
+        print_red "无效的选择。将使用默认选项。"; choice=$default_choice
     fi
-    
     local selected_index=$((choice-1))
-    # 将选择的IP和域名用冒号分隔后输出，方便主脚本捕获
     echo "${ip_array[$selected_index]}:${domain_array[$selected_index]}"
 }
-
-
-# --- 函数：以可靠的方式添加UDP端口 ---
-add_udp_port_robustly() {
-    while true; do
-        local udp_port; udp_port=$(shuf -i 10000-65535 -n 1)
-        local result; result=$(devil port add udp "$udp_port" 2>&1)
-        if [[ "$result" == *"Ok"* ]]; then
-            print_green "成功添加UDP端口: $udp_port"
-            echo "$udp_port"; break
-        else
-            print_yellow "端口 $udp_port 不可用，正在尝试其他端口..."
-            sleep 0.1
-        fi
-    done
-}
-
 
 # --- 主脚本逻辑 ---
 export LC_ALL=C
 HOSTNAME=$(hostname); NAME=$(echo "$HOSTNAME" | cut -d '.' -f 1)
 PASSWORD=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 8)
 
-# --- 步骤 1: 动态选择IP和域名 ---
-print_green "--- 步骤 1: 动态选择IP和域名 ---"
-# 使用IFS和read来同时接收函数返回的IP和域名
+# --- 步骤 1: 用户输入和动态选择 ---
+print_yellow "=================================================================="
+print_yellow "重要：在继续之前，请确保您已经登录服务商的网页控制面板，"
+print_yellow "手动开启了一个UDP端口供Hysteria2使用。"
+print_yellow "=================================================================="
+echo "" >&2
+reading "请输入您在网页面板上已开启的UDP端口: " hy2_port
+if ! [[ "$hy2_port" =~ ^[0-9]+$ ]] || [ "$hy2_port" -lt 1 ] || [ "$hy2_port" -gt 65535 ]; then
+    print_red "端口输入错误，脚本退出。"; exit 1
+fi
+print_purple "您指定的Hysteria2端口为: $hy2_port"
+
 IFS=':' read -r SELECTED_IP SELECTED_DOMAIN < <(select_ip_and_domain_interactive)
-if [ -z "$SELECTED_IP" ] || [ -z "$SELECTED_DOMAIN" ]; then print_red "IP和域名选择失败，正在退出。"; exit 1; fi
-print_purple "您选择的IP是: $SELECTED_IP"
-print_purple "对应的域名是: $SELECTED_DOMAIN"
+if [ -z "$SELECTED_IP" ]; then print_red "IP和域名选择失败，正在退出。"; exit 1; fi
+print_purple "您选择的IP是: $SELECTED_IP (对应域名: $SELECTED_DOMAIN)"
 
+# --- 步骤 2: 准备环境和文件 ---
+# 使用一个规范的、与工作脚本一致的目录结构
+WORKDIR="${HOME}/domains/${SELECTED_DOMAIN}/hysteria2"
+print_green "--- 步骤2: 准备环境 (目录: $WORKDIR) ---"
+mkdir -p "$WORKDIR"; pkill -f "hysteria-freebsd-amd64"; cd "$WORKDIR" || exit
+rm -rf ./*
 
-# --- 步骤 2: 检查执行权限 ---
-print_green "--- 步骤 2: 检查执行权限 ---"
-mkdir -p "/home/$USER/web"; pkill -f "hysteria-freebsd-amd64 server"
-cat << EOF > "/home/$USER/1.sh"
-#!/bin/bash
-echo "ok"
-EOF
-chmod +x "/home/$USER/1.sh"
-if ! /home/$USER/1.sh; then
-    devil binexec on
-    print_yellow "首次运行，已为您开启binexec权限。请重新登录SSH后再次执行脚本。"; exit 0
-fi
-
-# --- 步骤 3: 自动配置端口 ---
-print_green "--- 步骤 3: 自动清理并配置端口 ---"
-print_purple "正在清理所有旧的UDP端口..."
-devil port list | awk '/udp/ {print $1}' | while read -r port; do
-    devil port del udp "$port" >/dev/null 2>&1
-done
-print_purple "正在自动寻找并添加一个可用的UDP端口..."
-hy2_port=$(add_udp_port_robustly)
-if [ -z "$hy2_port" ]; then
-    print_red "无法自动添加UDP端口，脚本终止。"; exit 1
-fi
-
-# --- 步骤 4: 下载和配置Hysteria2 ---
-print_green "--- 步骤 4: 下载和配置Hysteria2 ---"
-cd "/home/$USER/web" || exit; rm -rf /home/$USER/web/*; sleep 1
+# --- 步骤 3: 下载和配置Hysteria2 ---
+print_green "--- 步骤3: 下载并配置Hysteria2 ---"
 wget https://github.com/apernet/hysteria/releases/download/v2.3.1/hysteria-freebsd-amd64
+if [ ! -s "hysteria-freebsd-amd64" ]; then
+    print_red "错误: Hysteria2 程序下载失败！请检查网络。"; exit 1
+fi
 chmod +x hysteria-freebsd-amd64
 openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) -keyout web.key -out web.crt -subj "/CN=bing.com" -days 36500
 
-cat << EOF > "/home/$USER/web/config.yaml"
+cat << EOF > config.yaml
 listen: :$hy2_port
 tls:
-  cert: /home/$USER/web/web.crt
-  key: /home/$USER/web/web.key
+  cert: ${WORKDIR}/web.crt
+  key: ${WORKDIR}/web.key
 auth:
   type: password
   password: $PASSWORD
@@ -124,21 +80,18 @@ masquerade:
     rewriteHost: true
 EOF
 
-# --- 步骤 5: 设置守护进程和定时任务 ---
-print_green "--- 步骤 5: 设置守护进程和定时任务 ---"
-cat << EOF > "/home/$USER/web/updateweb.sh"
+# --- 步骤 4: 设置守护进程 ---
+print_green "--- 步骤4: 启动服务并设置守护任务 ---"
+cat << EOF > updateweb.sh
 #!/bin/bash
 if pgrep -f "hysteria-freebsd-amd64 server" > /dev/null; then exit 0; else
-    cd "/home/$USER/web" || exit
+    cd "$WORKDIR" || exit
     nohup ./hysteria-freebsd-amd64 server --config config.yaml > /dev/null 2>&1 &
 fi
 EOF
 chmod +x updateweb.sh; ./updateweb.sh
-cron_job="*/39 * * * * /home/$USER/web/updateweb.sh"
-if ! crontab -l 2>/dev/null | grep -q "updateweb.sh"; then
-    (crontab -l 2>/dev/null; echo "$cron_job") | crontab -
-    print_green "保活任务已成功添加到 crontab。"
-fi
+(crontab -l 2>/dev/null | grep -v "updateweb.sh"; echo "*/10 * * * * ${WORKDIR}/updateweb.sh") | crontab -
+print_green "服务已启动，守护任务已设置。"
 
 # --- 最终输出 ---
 print_green "--- ✅ 安装完成 ---"
