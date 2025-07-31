@@ -157,17 +157,17 @@ IP链接:
       TELEGRAM_SUCCESS="yes"
     fi
     
-    # 最终屏幕显示
+   # 最终屏幕显示
     echo "" >&2 # 增加一个空行
-    green "=============================================="
-    green " HY2 部署成功"
+    print_green "=============================================="
+    print_green " HY2 部署成功"
     if [[ "$TELEGRAM_SUCCESS" == "yes" ]]; then
-        green " 已通过 Telegram 发送节点信息"
+        print_green " 已通过 Telegram 发送节点信息"
     fi
-    green " 链接如下："
-    yellow "$LINK_IP"
-    yellow "$LINK_DOMAIN"
-    green "=============================================="
+    print_green " 链接如下："
+    print_yellow "$LINK_IP"
+    print_yellow "$LINK_DOMAIN"
+    print_green "=============================================="
 }
 
 # --- 运行主函数 ---
