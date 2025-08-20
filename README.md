@@ -18,7 +18,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/my-pl/refs/heads/ma
 ```
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/my-pl/refs/heads/main/ct8-hy2X.sh)
-```（可切换ip，封号）
+``
 ## 四、其他
 *  掉线重新安装即可
 ## 五、卸载及清理
