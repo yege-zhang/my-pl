@@ -12,7 +12,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/my-pl/refs/heads/ma
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/my-pl/refs/heads/main/00-hy2.sh)
 ```
 ## 三、ct8-hy2
-* 复制脚本回车全自动安装：
+* 复制脚本回车全自动安装（x可切换ip，封号）：
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/my-pl/refs/heads/main/ct8-hy2.sh)
 ```
