@@ -7,7 +7,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/my-pl/refs/heads/ma
 * ②脚本中输入：cname的主域名
 * ③域名SSL/TLS加密方式改成灵活
 ## 二、00-hy2
-* 复制脚本回车根据提示安装：
+* 复制脚本回车根据提示安装(封号)：
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/my-pl/refs/heads/main/00-hy2.sh)
 ```
@@ -18,7 +18,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/my-pl/refs/heads/ma
 ```
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/my-pl/refs/heads/main/ct8-hy2X.sh)
-```
+```（可切换ip，封号）
 ## 四、其他
 *  掉线重新安装即可
 ## 五、卸载及清理
