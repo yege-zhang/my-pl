@@ -9,7 +9,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/my-pl/refs/heads/ma
 ## 二、Serv00|ct8-hy2
 * 复制脚本回车根据提示安装：
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/my-pl/refs/heads/main/Serv00|ct8-hy2.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/yege-zhang/my-pl/refs/heads/main/Serv00%7Cct8-hy2.sh)
 ```
 ## 三、ct8-hy2
 * 复制脚本回车全自动安装（x可切换ip，封号）：
