@@ -135,8 +135,11 @@ read -p "请输入你的 Telegram Chat ID（可留空跳过）: " TELEGRAM_CHAT_
 if [[ -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_CHAT_ID" ]]; then
   NAME="${NAME:-defaultName}"
   TAG="$NAME@$USER-hy2"
-  SUB_URL="hysteria2://$PASSWORD@s$hostname_number.ct8.pl:$hy2/?sni=www.bing.com&alpn=h3&insecure=1#$TAG"
-  ENCODED_LINK=$(echo -n "$SUB_URL" | base64 | tr -d '\n')
+  SUB_CT8="hysteria2://$PASSWORD@s$hostname_number.ct8.pl:$hy2/?sni=www.bing.com&alpn=h3&insecure=1#$TAG"
+  SUB_SERV00="hysteria2://$PASSWORD@s$hostname_number.serv00.com:$hy2/?sni=www.bing.com&alpn=h3&insecure=1#$TAG--s$hostname_number.serv00.com"
+
+  ENCODED_CT8=$(echo -n "$SUB_CT8" | base64 | tr -d '\n')
+  ENCODED_SERV00=$(echo -n "$SUB_SERV00" | base64 | tr -d '\n')
 
   curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
     --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
@@ -146,13 +149,17 @@ if [[ -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_CHAT_ID" ]]; then
 
   curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
     --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
-    --data-urlencode "text=$ENCODED_LINK"
+    --data-urlencode "text=CT8 节点：$ENCODED_CT8"
+
+  sleep 0.5
+
+  curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+    --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+    --data-urlencode "text=Serv00 节点：$ENCODED_SERV00"
 
   green "=============================="
   green "HY2 部署成功"
-  green "已通过 Telegram 发送信息"
-  green "链接如下："
-  yellow "$SUB_URL"
+  green "已通过 Telegram 发送两条节点信息"
   green "=============================="
 else
   green "HY2 部署成功（未启用 Telegram 推送）"
